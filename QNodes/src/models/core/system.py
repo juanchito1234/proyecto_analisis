@@ -265,6 +265,240 @@ class System:
 
         return nuevo_sistema
 
+    def k_particionar(
+        self,
+        particiones: list[tuple[np.ndarray, np.ndarray]]
+    ) -> "System":
+        """
+        Generaliza la operación de bipartición hacia k-particiones.
+
+        A partir de un subsistema, permite construir una partición de orden k,
+        donde cada bloque está definido por:
+
+            (alcance_i, mecanismo_i)
+
+        para i = 1, 2, ..., k
+
+        Cada n-cubo del sistema se asigna exactamente a un bloque según su índice
+        futuro (cube.indice ∈ alcance_i). Una vez identificado su bloque, se aplica
+        la marginalización correspondiente:
+
+            - Si el cubo pertenece al alcance del bloque:
+                se preservan únicamente las dimensiones de su mecanismo asociado.
+
+            - Si no pertenece a ningún alcance:
+                esto representa una partición inválida y se lanza excepción.
+
+        Esta implementación mantiene la misma filosofía matemática usada en
+        `bipartir()`, reutilizando directamente la infraestructura geométrica de N-Cubos.
+
+        Parameters
+        ----------
+        particiones : list[tuple[np.ndarray, np.ndarray]]
+            Lista de bloques de la k-partición.
+
+            Cada elemento tiene la forma:
+
+                (alcance, mecanismo)
+
+            donde:
+
+            - alcance : variables futuras del bloque
+            - mecanismo : variables presentes del bloque
+
+            Ejemplo:
+
+            [
+                (np.array([0]), np.array([0,1])),
+                (np.array([1]), np.array([2])),
+                (np.array([2]), np.array([1,2]))
+            ]
+
+        Returns
+        -------
+        System
+            Nuevo sistema particionado con k bloques,
+            listo para evaluar mediante:
+
+                distribucion_marginal()
+
+        Raises
+        ------
+        ValueError
+            Si un n-cubo no pertenece a ningún alcance definido,
+            o si existen solapamientos inválidos en la partición.
+        """
+
+        # Crear nueva instancia sin llamar __init__
+        new_sys = System.__new__(System)
+        new_sys.estado_inicial = self.estado_inicial
+
+        nuevos_ncubos = []
+
+        for cube in self.ncubos:
+            bloque_encontrado = False
+
+            # Buscar a qué bloque pertenece este n-cubo
+            for alcance, mecanismo in particiones:
+
+                if cube.indice in alcance:
+                    """
+                    Mismo principio que bipartir():
+
+                    si cube pertenece al alcance,
+                    preservamos únicamente las dimensiones
+                    asociadas a su mecanismo.
+                    """
+
+                    dims_a_eliminar = np.setdiff1d(
+                        cube.dims,
+                        mecanismo
+                    )
+
+                    nuevo_cube = cube.marginalizar(
+                        dims_a_eliminar
+                    )
+
+                    nuevos_ncubos.append(nuevo_cube)
+                    bloque_encontrado = True
+                    break
+
+            if not bloque_encontrado:
+                raise ValueError(
+                    f"El n-cubo con índice {cube.indice} "
+                    f"no pertenece a ningún bloque de la k-partición."
+                )
+
+        # Validación opcional fuerte:
+        # asegurar cobertura completa
+        indices_resultantes = sorted(
+            [cube.indice for cube in nuevos_ncubos]
+        )
+
+        indices_originales = sorted(
+            [cube.indice for cube in self.ncubos]
+        )
+
+        if indices_resultantes != indices_originales:
+            raise ValueError(
+                "La k-partición generó pérdida inconsistente "
+                "de n-cubos. Verifique cobertura completa."
+            )
+
+        new_sys.ncubos = tuple(nuevos_ncubos)
+
+        return new_sys
+    
+    def validar_k_particion(
+        self,
+        particiones: list[tuple[np.ndarray, np.ndarray]]
+    ) -> bool:
+        """
+        Valida que una k-partición sea estructuralmente correcta
+        antes de aplicar `k_particionar()`.
+
+        Una partición válida debe cumplir:
+
+        1. Cada bloque debe tener la forma:
+                (alcance, mecanismo)
+
+        2. Ningún alcance puede estar vacío.
+
+        3. La unión de todos los alcances debe cubrir exactamente
+        todos los índices futuros del sistema:
+
+                union(alcances) = self.indices_ncubos
+
+        4. No puede haber solapamientos entre alcances:
+
+                alcance_i ∩ alcance_j = ∅
+
+        5. Los mecanismos pueden repetirse (esto sí es válido),
+        pero no deben estar vacíos.
+
+        Parameters
+        ----------
+        particiones : list[tuple[np.ndarray, np.ndarray]]
+            Lista de bloques de la k-partición.
+
+        Returns
+        -------
+        bool
+            True si la partición es válida.
+
+        Raises
+        ------
+        ValueError
+            Si alguna regla estructural no se cumple.
+        """
+
+        if not particiones:
+            raise ValueError(
+                "La k-partición no puede estar vacía."
+            )
+
+        alcances_totales = []
+        indices_sistema = set(self.indices_ncubos.tolist())
+
+        for idx, bloque in enumerate(particiones):
+
+            if len(bloque) != 2:
+                raise ValueError(
+                    f"El bloque {idx} no tiene formato "
+                    f"(alcance, mecanismo)."
+                )
+
+            alcance, mecanismo = bloque
+
+            # Validar alcance no vacío
+            if len(alcance) == 0:
+                raise ValueError(
+                    f"El bloque {idx} tiene alcance vacío."
+                )
+
+            # Validar mecanismo no vacío
+            if len(mecanismo) == 0:
+                raise ValueError(
+                    f"El bloque {idx} tiene mecanismo vacío."
+                )
+
+            # Validar que alcance exista en sistema
+            for nodo in alcance:
+                if nodo not in indices_sistema:
+                    raise ValueError(
+                        f"El nodo futuro {nodo} del bloque {idx} "
+                        f"no pertenece al sistema."
+                    )
+
+            # Validar que mecanismo exista en dimensiones
+            for nodo in mecanismo:
+                if nodo not in self.dims_ncubos:
+                    raise ValueError(
+                        f"El nodo presente {nodo} del bloque {idx} "
+                        f"no pertenece al sistema."
+                    )
+
+            alcances_totales.extend(alcance.tolist())
+
+        # Validar que no haya duplicados en alcances
+        if len(set(alcances_totales)) != len(alcances_totales):
+            raise ValueError(
+                "Existen solapamientos entre alcances. "
+                "Un nodo futuro no puede pertenecer "
+                "a más de un bloque."
+            )
+
+        # Validar cobertura completa
+        if set(alcances_totales) != indices_sistema:
+            faltantes = indices_sistema - set(alcances_totales)
+
+            raise ValueError(
+                "La k-partición no cubre completamente "
+                f"el sistema. Faltan nodos: {faltantes}"
+            )
+
+        return True
+
     def distribucion_marginal(self):
         """
         Partiendo de idealmente un subsistema o una bipartición como entrada, se seleccionana los nodos/elementos cuando su estado es OFF o inactivo para cada uno de ellos (mediante la propiedad de las distribuciones marginales) esto nos permite calcular más eficientemente la EMD-Effect, logrando así determinar un coste para dar comparación entre idealmente, un sub-sistema y una bipartición. Hemos de aplicar una reversión en la selección del estado inicial puesto se está trabajando con el dataset original.
