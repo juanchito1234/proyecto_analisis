@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from src.constants.base import (
     ACTUAL,
@@ -176,12 +177,12 @@ class KPartitionGenerator:
         )
 
         candidatos = []
-
         firmas_vistas = set()
-
         max_offset = len(pares) - k + 1
+        num_trials = min(20, max_offset)
+        offsets = np.linspace(0, max_offset - 1, num_trials, dtype=int)
 
-        for offset in range(max_offset):
+        for offset in offsets:
 
             """
             Seleccionar semillas geométricas.
@@ -285,6 +286,8 @@ class KPartitionGenerator:
                 firmas_vistas.add(
                     firma
                 )
+                
+                particion = copy.deepcopy(particion)
 
                 candidatos.append(
                     particion
@@ -337,16 +340,17 @@ class KPartitionGenerator:
             Índice del mejor bloque.
         """
 
-        distancias = [
-            abs(
-                presente - semilla
-            )
-            for semilla in semillas
-        ]
+        distancias = []
 
-        return int(
-            np.argmin(distancias)
-        )
+        for semilla in semillas:
+            # penaliza distancia + ruido leve para evitar empates
+            score = (
+                0.7 * abs(presente - semilla)
+                + 0.3 * np.random.uniform(0, 0.05)
+            )
+            distancias.append(score)
+
+        return int(np.argmin(distancias))
 
     def best_block_for_future(
         self,
@@ -375,16 +379,16 @@ class KPartitionGenerator:
             Índice del mejor bloque.
         """
 
-        distancias = [
-            abs(
-                futuro - semilla
-            )
-            for semilla in semillas
-        ]
+        distancias = []
 
-        return int(
-            np.argmin(distancias)
-        )
+        for semilla in semillas:
+            score = (
+                0.7 * abs(futuro - semilla)
+                + 0.3 * np.random.uniform(0, 0.05)
+            )
+            distancias.append(score)
+
+        return int(np.argmin(distancias))
 
     def valid_partition(
         self,

@@ -9,9 +9,9 @@ def main():
     # aplicacion.pagina_sample_network = "B"
 
     # pruebitas de las particiones k-geométricas jijijija
-    # probar_k_geometric()
+    probar_k_geometric()
 
-    iniciar()
+    #iniciar()
 
 
 if __name__ == "__main__":

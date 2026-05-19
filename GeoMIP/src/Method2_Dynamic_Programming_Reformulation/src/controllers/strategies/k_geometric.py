@@ -350,9 +350,7 @@ class KGeometric(SIA):
                 -
                 self.sia_tiempo_inicio
             ),
-            particion=str(
-                mejor_particion
-            )
+            particion=mejor_particion
         )
 
     def find_k_mip(

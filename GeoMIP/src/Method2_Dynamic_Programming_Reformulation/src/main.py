@@ -84,6 +84,41 @@ from pathlib import Path
 METHOD2_ROOT = Path(__file__).resolve().parents[1]
 GEOMIP_ROOT = Path(__file__).resolve().parents[3]
 
+K = 5
+N = 15
+VERSION = "B"
+
+TPM_FILE = f"N{N}{VERSION}.csv"
+ESTADO_INICIAL = "1" + ("0" * (N - 1))
+CONDICIONES = "1" * N
+ALCANCE = "1" * N
+MECANISMO = "1" * N
+
+def limpiar_particion(obj):
+    # NumPy integer -> int normal
+    if isinstance(obj, np.integer):
+        return int(obj)
+    # Tuplas
+    elif isinstance(obj, tuple):
+        return tuple(
+            limpiar_particion(x)
+            for x in obj
+        )
+    # Listas
+    elif isinstance(obj, list):
+        return [
+            limpiar_particion(x)
+            for x in obj
+        ]
+    # Sets
+    elif isinstance(obj, set):
+        return {
+            limpiar_particion(x)
+            for x in obj
+        }
+    # Otros tipos
+    return obj
+
 def convertir_a_binario(texto, n_bits=20):
     posiciones = "ABCDEFGHIJKLMNOPQRST"[:n_bits]
     binario = ["0"] * n_bits
@@ -194,19 +229,51 @@ def ejecutar_k_geometric(
             "estrategia": None
         })
 
-def resolver_tpm_path(estado_inicio: str) -> Path:
-    """Find TPM file in common project locations based on state size."""
-    sample_name = f"N{len(estado_inicio)}A.csv"
+def resolver_tpm_path(
+    estado_inicio: str,
+    archivo_tpm: str | None = None,
+    version="A"
+) -> Path:
+
+    # Si el usuario pasa un archivo exacto
+    if archivo_tpm is not None:
+
+        possible_paths = (
+            METHOD2_ROOT / "src" / ".samples" / archivo_tpm,
+            METHOD2_ROOT / ".samples" / archivo_tpm,
+            GEOMIP_ROOT / "data" / "samples" / archivo_tpm,
+        )
+
+        for path in possible_paths:
+            if path.exists():
+
+                print(f"\n===== USANDO TPM: {path} =====\n")
+
+                return path
+
+        raise FileNotFoundError(
+            f"No se encontró el archivo TPM: {archivo_tpm}"
+        )
+
+    # Si no pasa archivo, usar lógica automática
+    sample_name = f"N{len(estado_inicio)}{version}.csv"
+
     candidates = (
         METHOD2_ROOT / "src" / ".samples" / sample_name,
         METHOD2_ROOT / ".samples" / sample_name,
         GEOMIP_ROOT / "data" / "samples" / sample_name,
     )
+
     for candidate in candidates:
+
         if candidate.exists():
+
+            print(f"\n===== USANDO TPM: {candidate} =====\n")
+
             return candidate
+
     raise FileNotFoundError(
-        f"No se encontró la TPM '{sample_name}'. Busqué en: {', '.join(str(c) for c in candidates)}"
+        f"No se encontró la TPM '{sample_name}'"
     )
 
 
@@ -250,7 +317,10 @@ def ejecutar_desde_excel(
 
     estado_inicio = estado_inicio or inferir_estado_inicial()
     condiciones = condiciones or ("1" * len(estado_inicio))
-    tpm_path = resolver_tpm_path(estado_inicio)
+    tpm_path = resolver_tpm_path(
+        estado_inicio,
+        archivo_tpm=TPM_FILE
+    )
     tpm = np.genfromtxt(tpm_path, delimiter=",")
 
     for i, fila in enumerate(filas, start=inicio + 1):
@@ -314,13 +384,14 @@ def probar_k_geometric():
 
     print("Iniciando prueba K-Geometric")
 
-    estado_inicial = "100"
-    condiciones = "111"
-    alcance = "111"
-    mecanismo = "111"
+    estado_inicial = ESTADO_INICIAL
+    condiciones = CONDICIONES
+    alcance = ALCANCE
+    mecanismo = MECANISMO
 
     tpm_path = resolver_tpm_path(
-        estado_inicial
+        estado_inicial,
+        archivo_tpm=TPM_FILE
     )
 
     print("Leyendo TPM...")
@@ -347,8 +418,13 @@ def probar_k_geometric():
         alcance=alcance,
         mecanismo=mecanismo,
         tpm=tpm,
-        k=3
+        k=K
     )
 
     print("RESULTADO:")
+
+    solucion.particion = limpiar_particion(
+        solucion.particion
+    )
+
     print(solucion)
