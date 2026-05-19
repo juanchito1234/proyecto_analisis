@@ -67,6 +67,7 @@
 from src.controllers.manager import Manager
 from src.controllers.strategies.geometric import GeometricSIA
 from src.controllers.strategies.q_nodes import QNodes
+from src.controllers.strategies.k_geometric import KGeometric
 # Optional import: this project often runs only geometric strategy.
 try:
     from src.controllers.strategies.phi import Phi
@@ -106,6 +107,91 @@ def ejecutar_con_tiempo(config_sistema, condiciones, alcance, mecanismo, resulta
             "particion": None,
             "perdida": None,
             "tiempo": None,
+        })
+
+def ejecutar_k_geometric(
+    config_sistema,
+    condiciones,
+    alcance,
+    mecanismo,
+    resultado_queue,
+    tpm,
+    k=3
+):
+    """
+    Ejecuta la estrategia K-Geometric para pruebas
+    experimentales.
+
+    Esta función replica exactamente el flujo usado
+    por GeoMIP clásico para facilitar comparación:
+
+    - pérdida
+    - tiempo
+    - partición
+    - estabilidad
+
+    Parameters
+    ----------
+    config_sistema : Manager
+        Configuración principal del sistema.
+
+    condiciones : str
+        Variables condicionadas.
+
+    alcance : str
+        Variables futuras.
+
+    mecanismo : str
+        Variables presentes.
+
+    resultado_queue : multiprocessing.Queue
+        Cola para retornar resultados.
+
+    tpm : np.ndarray
+        Matriz TPM del sistema.
+
+    k : int
+        Número de bloques deseados.
+    """
+
+    try:
+
+        analizador = KGeometric(
+            config_sistema
+        )
+
+        solucion = analizador.aplicar_estrategia(
+            condiciones,
+            alcance,
+            mecanismo,
+            tpm,
+            k=k
+        )
+
+        resultado_queue.put({
+            "particion": solucion.particion,
+            "perdida": str(
+                solucion.perdida
+            ).replace('.', ','),
+
+            "tiempo": str(
+                solucion.tiempo_total
+            ).replace('.', ','),
+
+            "estrategia": f"K-GEOMETRIC k={k}"
+        })
+
+    except Exception as e:
+
+        print(
+            f"[ERROR K-GEOMETRIC] {str(e)}"
+        )
+
+        resultado_queue.put({
+            "particion": None,
+            "perdida": None,
+            "tiempo": None,
+            "estrategia": None
         })
 
 def resolver_tpm_path(estado_inicio: str) -> Path:
@@ -223,3 +309,46 @@ def iniciar():
         )
     )
     ejecutar_desde_excel(ruta_entrada, ruta_salida)
+
+def probar_k_geometric():
+
+    print("Iniciando prueba K-Geometric")
+
+    estado_inicial = "100"
+    condiciones = "111"
+    alcance = "111"
+    mecanismo = "111"
+
+    tpm_path = resolver_tpm_path(
+        estado_inicial
+    )
+
+    print("Leyendo TPM...")
+
+    tpm = np.genfromtxt(
+        tpm_path,
+        delimiter=","
+    )
+
+    gestor = Manager(
+        estado_inicial
+    )
+
+    print("Creando estrategia...")
+
+    estrategia = KGeometric(
+        gestor
+    )
+
+    print("Aplicando estrategia...")
+
+    solucion = estrategia.aplicar_estrategia(
+        condicion=condiciones,
+        alcance=alcance,
+        mecanismo=mecanismo,
+        tpm=tpm,
+        k=3
+    )
+
+    print("RESULTADO:")
+    print(solucion)
