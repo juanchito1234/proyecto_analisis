@@ -458,25 +458,28 @@ class TransitionGeometry:
     ):
         """
         Calcula distancia de Hamming
-        entre dos estados binarios.
-
-        Parameters
-        ----------
-        a : list | tuple | np.ndarray
-
-        b : list | tuple | np.ndarray
-
-        Returns
-        -------
-        int
+        entre dos secuencias binarias.
         """
 
-        if len(a) != len(b):
+        if isinstance(a, str):
+            a = list(a)
 
-            raise ValueError(
-                "Vectores con distinta "
-                "longitud."
-            )
+        if isinstance(b, str):
+            b = list(b)
+
+        max_len = max(
+            len(a),
+            len(b)
+        )
+
+        a = list(a)
+        b = list(b)
+
+        while len(a) < max_len:
+            a.insert(0, "0")
+
+        while len(b) < max_len:
+            b.insert(0, "0")
 
         return sum(
             x != y

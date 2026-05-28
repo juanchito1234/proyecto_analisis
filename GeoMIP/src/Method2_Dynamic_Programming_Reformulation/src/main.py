@@ -382,11 +382,14 @@ def iniciar():
 
 def probar_k_geometric():
 
-    print("Iniciando prueba K-Geometric")
+    print("\n===== K-GEOMETRIC =====\n")
 
     estado_inicial = ESTADO_INICIAL
+
     condiciones = CONDICIONES
+
     alcance = ALCANCE
+
     mecanismo = MECANISMO
 
     tpm_path = resolver_tpm_path(
@@ -394,12 +397,17 @@ def probar_k_geometric():
         archivo_tpm=TPM_FILE
     )
 
-    print("Leyendo TPM...")
+    print("TPM usada:")
+    print(tpm_path)
+
+    print("\nLeyendo TPM...")
 
     tpm = np.genfromtxt(
         tpm_path,
         delimiter=","
     )
+
+    print("Creando gestor...")
 
     gestor = Manager(
         estado_inicial
@@ -418,13 +426,20 @@ def probar_k_geometric():
         alcance=alcance,
         mecanismo=mecanismo,
         tpm=tpm,
-        k=K
+        k=2
     )
 
-    print("RESULTADO:")
+    print("\n===== RESULTADO =====")
+
+    print("Pérdida:")
+    print(solucion.perdida)
+
+    print("\nPartición:")
+    print(solucion.particion)
 
     solucion.particion = limpiar_particion(
         solucion.particion
     )
 
+    print("\nSolución completa:")
     print(solucion)

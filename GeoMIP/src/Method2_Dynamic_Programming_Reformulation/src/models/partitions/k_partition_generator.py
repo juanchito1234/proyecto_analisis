@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+from itertools import combinations
 
 from src.constants.base import (
     ACTUAL,
@@ -112,17 +113,16 @@ class KPartitionGenerator:
 
         1. Obtener costos globales
 
-        2. Ordenar futuros por menor costo
+        2. Explorar múltiples combinaciones
+        de semillas geométricas
 
-        3. Seleccionar ventanas de semillas
+        3. Inicializar bloques semilla
 
-        4. Inicializar bloques semilla
+        4. Asignar presentes por cercanía
 
-        5. Asignar presentes por cercanía
+        5. Asignar futuros restantes por cercanía
 
-        6. Asignar futuros restantes por cercanía
-
-        7. Eliminar duplicados estructurales
+        6. Eliminar duplicados estructurales
 
         Parameters
         ----------
@@ -135,12 +135,15 @@ class KPartitionGenerator:
             Lista de particiones candidatas.
         """
 
+        from itertools import combinations
+
         key = (
             tuple(self.caminos[0][0]),
             tuple(self.estado_final)
         )
 
         if key not in self.tabla_transiciones:
+
             raise ValueError(
                 "No existe información geométrica "
                 "para construir particiones."
@@ -155,13 +158,14 @@ class KPartitionGenerator:
         ]
 
         if len(pares) < k:
+
             raise ValueError(
                 f"No existen suficientes futuros "
                 f"para construir k={k}."
             )
 
         """
-        Ordenar futuros por menor costo.
+        Ordenar futuros por menor costo geométrico.
         """
 
         pares.sort(
@@ -177,23 +181,55 @@ class KPartitionGenerator:
         )
 
         candidatos = []
+
         firmas_vistas = set()
-        max_offset = len(pares) - k + 1
-        num_trials = min(20, max_offset)
-        offsets = np.linspace(0, max_offset - 1, num_trials, dtype=int)
 
-        for offset in offsets:
+        """
+        Extraer índices ordenados.
+        """
+
+        indices_ordenados = [
+            idx
+            for _, idx in pares
+        ]
+
+        """
+        Generar combinaciones reales
+        de semillas.
+
+        Esto explora MUCHAS más
+        particiones estructurales.
+        """
+
+        top_limit = min(
+            12,
+            len(indices_ordenados)
+        )
+
+        indices_reducidos = (
+            indices_ordenados[:top_limit]
+        )
+
+        combinaciones_semillas = list(
+            combinations(
+                indices_reducidos,
+                k
+            )
+)
+
+        if self.logger:
+
+            self.logger.critic(
+                f"Explorando "
+                f"{len(combinaciones_semillas)} "
+                f"combinaciones de semillas."
+            )
+
+        for semillas in combinaciones_semillas:
 
             """
-            Seleccionar semillas geométricas.
+            Inicializar bloques.
             """
-
-            semillas = [
-                idx
-                for _, idx in pares[
-                    offset:offset + k
-                ]
-            ]
 
             particion = []
 
@@ -210,8 +246,7 @@ class KPartitionGenerator:
                 )
 
             """
-            Asignar presentes usando
-            clusterización geométrica.
+            Asignar presentes.
             """
 
             for presente in presentes_totales:
@@ -230,8 +265,7 @@ class KPartitionGenerator:
                 )
 
             """
-            Asignar futuros restantes
-            usando cercanía geométrica.
+            Asignar futuros restantes.
             """
 
             futuros_restantes = [
@@ -256,11 +290,7 @@ class KPartitionGenerator:
                 )
 
             """
-            Validar bloques mínimos.
-
-            Cada bloque debe contener:
-                - al menos un ACTUAL
-                - al menos un EFECTO
+            Validar estructura mínima.
             """
 
             if not self.valid_partition(
@@ -269,7 +299,8 @@ class KPartitionGenerator:
                 continue
 
             """
-            Firma estructural canónica.
+            Construir firma canónica
+            para evitar duplicados.
             """
 
             firma = tuple(
@@ -286,14 +317,15 @@ class KPartitionGenerator:
                 firmas_vistas.add(
                     firma
                 )
-                
-                particion = copy.deepcopy(particion)
 
                 candidatos.append(
-                    particion
+                    copy.deepcopy(
+                        particion
+                    )
                 )
 
         if not candidatos:
+
             raise ValueError(
                 "No fue posible generar "
                 "particiones candidatas."
@@ -315,42 +347,45 @@ class KPartitionGenerator:
         semillas
     ):
         """
-        Determina el bloque más cercano
-        para una variable presente.
-
-        Heurística:
-        ------------
-
-        Se aproxima cercanía usando:
-
-            |presente - semilla|
-
-        Esto mantiene coherencia topológica
-        entre variables presentes y futuras.
-
-        Parameters
-        ----------
-        presente : int
-
-        semillas : list[int]
-
-        Returns
-        -------
-        int
-            Índice del mejor bloque.
+        Asigna un nodo ACTUAL al bloque cuya
+        semilla EFECTO tenga menor costo geométrico.
         """
 
-        distancias = []
+        key = (
+            tuple(self.caminos[0][0]),
+            tuple(self.estado_final)
+        )
 
-        for semilla in semillas:
-            # penaliza distancia + ruido leve para evitar empates
-            score = (
-                0.7 * abs(presente - semilla)
-                + 0.3 * np.random.uniform(0, 0.05)
+        costos_globales = self.tabla_transiciones[key]
+
+        mejor_bloque = 0
+        mejor_score = float("inf")
+
+        for idx_bloque, semilla in enumerate(semillas):
+
+            costo_semilla = costos_globales[semilla]
+
+            """
+            Penalización estructural:
+            distancia topológica.
+            """
+
+            distancia = abs(
+                presente - semilla
             )
-            distancias.append(score)
 
-        return int(np.argmin(distancias))
+            score = (
+                costo_semilla
+                +
+                (0.15 * distancia)
+            )
+
+            if score < mejor_score:
+
+                mejor_score = score
+                mejor_bloque = idx_bloque
+
+        return mejor_bloque
 
     def best_block_for_future(
         self,
@@ -358,37 +393,54 @@ class KPartitionGenerator:
         semillas
     ):
         """
-        Determina el bloque geométricamente
-        más cercano para un futuro restante.
-
-        Heurística:
-        ------------
-
-        Se utiliza distancia relativa
-        respecto a semillas geométricas.
-
-        Parameters
-        ----------
-        futuro : int
-
-        semillas : list[int]
-
-        Returns
-        -------
-        int
-            Índice del mejor bloque.
+        Asigna futuros restantes usando
+        similitud geométrica real.
         """
 
-        distancias = []
+        key = (
+            tuple(self.caminos[0][0]),
+            tuple(self.estado_final)
+        )
 
-        for semilla in semillas:
-            score = (
-                0.7 * abs(futuro - semilla)
-                + 0.3 * np.random.uniform(0, 0.05)
+        costos_globales = self.tabla_transiciones[key]
+
+        costo_futuro = costos_globales[futuro]
+
+        mejor_bloque = 0
+        mejor_score = float("inf")
+
+        for idx_bloque, semilla in enumerate(semillas):
+
+            costo_semilla = costos_globales[semilla]
+
+            """
+            Diferencia geométrica entre nodos.
+            """
+
+            diferencia = abs(
+                costo_futuro - costo_semilla
             )
-            distancias.append(score)
 
-        return int(np.argmin(distancias))
+            """
+            Penalización estructural leve.
+            """
+
+            distancia = abs(
+                futuro - semilla
+            )
+
+            score = (
+                diferencia
+                +
+                (0.10 * distancia)
+            )
+
+            if score < mejor_score:
+
+                mejor_score = score
+                mejor_bloque = idx_bloque
+
+        return mejor_bloque
 
     def valid_partition(
         self,

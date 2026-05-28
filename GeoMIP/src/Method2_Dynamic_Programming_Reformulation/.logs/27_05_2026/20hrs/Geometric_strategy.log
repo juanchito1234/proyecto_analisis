@@ -1,0 +1,4 @@
+2026-05-27 20:52:02 [Geometric_strategy] CRITICAL MainProcess: Iniciando búsqueda de k-MIP con k=8
+2026-05-27 20:52:02 [Geometric_strategy] CRITICAL MainProcess: Explorando 45 combinaciones de semillas.
+2026-05-27 20:52:02 [Geometric_strategy] CRITICAL MainProcess: Generadas 32 particiones candidatas.
+2026-05-27 20:52:02 [Geometric_strategy] CRITICAL MainProcess: k-MIP encontrada con pérdida mínima=4.923828125
