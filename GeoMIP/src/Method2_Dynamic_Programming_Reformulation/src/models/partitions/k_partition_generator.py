@@ -66,423 +66,143 @@ class KPartitionGenerator:
         estado_final,
         logger=None
     ):
-        """
-        Inicializa el generador geométrico.
-
-        Parameters
-        ----------
-        sia_subsistema :
-            Subsistema SIA preparado.
-
-        tabla_transiciones : dict
-            Tabla geométrica de costos.
-
-        caminos : dict
-            Estados agrupados por distancia
-            de Hamming.
-
-        estado_final : np.ndarray
-            Estado objetivo geométrico.
-
-        logger : optional
-            Logger del sistema.
-        """
-
         self.sia_subsistema = sia_subsistema
-
-        self.tabla_transiciones = (
-            tabla_transiciones
-        )
-
+        self.tabla_transiciones = tabla_transiciones
         self.caminos = caminos
-
         self.estado_final = estado_final
-
         self.logger = logger
+        
+        # Pre-calcular matriz de conectividad (Influencia Mecanismo -> Efecto)
+        # C[idx_mecanismo][idx_efecto] = Cambio promedio en P(efecto) al mutar mecanismo
+        self.conectividad = self._calcular_conectividad()
 
-    def identificar_particiones_candidatas(
-        self,
-        k: int
-    ):
-        """
-        Construye múltiples k-particiones candidatas
-        usando clusterización geométrica.
+    def _calcular_conectividad(self):
+        abs_p = self.sia_subsistema.dims_ncubos
+        abs_f = self.sia_subsistema.indices_ncubos
+        matrix = {}
+        
+        for f_idx, cube in enumerate(self.sia_subsistema.ncubos):
+            abs_f_id = abs_f[f_idx]
+            for p_idx, p_id in enumerate(cube.dims):
+                # La influencia es el promedio de la diferencia absoluta
+                # entre las caras del n-cubo al variar la dimensión p
+                data = cube.data
+                # Crear rodajas para comparar p=0 con p=1
+                slice0 = [slice(None)] * len(cube.dims)
+                slice1 = [slice(None)] * len(cube.dims)
+                slice0[p_idx] = 0
+                slice1[p_idx] = 1
+                
+                diff = np.mean(np.abs(data[tuple(slice0)] - data[tuple(slice1)]))
+                matrix[(p_id, abs_f_id)] = diff
+        return matrix
 
-        Flujo:
-        -------
-
-        1. Obtener costos globales
-
-        2. Explorar múltiples combinaciones
-        de semillas geométricas
-
-        3. Inicializar bloques semilla
-
-        4. Asignar presentes por cercanía
-
-        5. Asignar futuros restantes por cercanía
-
-        6. Eliminar duplicados estructurales
-
-        Parameters
-        ----------
-        k : int
-            Número de bloques deseados.
-
-        Returns
-        -------
-        list
-            Lista de particiones candidatas.
-        """
-
-        from itertools import combinations
-
-        key = (
-            tuple(self.caminos[0][0]),
-            tuple(self.estado_final)
-        )
-
-        if key not in self.tabla_transiciones:
-
-            raise ValueError(
-                "No existe información geométrica "
-                "para construir particiones."
-            )
-
-        costos = self.tabla_transiciones[key]
-
-        pares = [
-            (valor, idx)
-            for idx, valor in enumerate(costos)
-            if valor is not None
-        ]
-
-        if len(pares) < k:
-
-            raise ValueError(
-                f"No existen suficientes futuros "
-                f"para construir k={k}."
-            )
-
-        """
-        Ordenar futuros por menor costo geométrico.
-        """
-
-        pares.sort(
-            key=lambda x: x[0]
-        )
-
-        total_futuros = len(
-            self.sia_subsistema.indices_ncubos
-        )
-
-        presentes_totales = list(
-            self.sia_subsistema.dims_ncubos
-        )
-
+    def identificar_particiones_candidatas(self, k: int):
         candidatos = []
+        firmas = set()
+        estado_base = tuple(self.caminos[0][0])
+        
+        abs_p = self.sia_subsistema.dims_ncubos
+        abs_f = self.sia_subsistema.indices_ncubos
+        
+        def registrar_particion(bloques):
+            if not self.valid_partition(bloques): return
+            firma = tuple(sorted(tuple(sorted(b)) for b in bloques))
+            if firma not in firmas:
+                firmas.add(firma)
+                candidatos.append(copy.deepcopy(bloques))
 
-        firmas_vistas = set()
-
-        """
-        Extraer índices ordenados.
-        """
-
-        indices_ordenados = [
-            idx
-            for _, idx in pares
-        ]
-
-        """
-        Generar combinaciones reales
-        de semillas.
-
-        Esto explora MUCHAS más
-        particiones estructurales.
-        """
-
-        top_limit = min(
-            12,
-            len(indices_ordenados)
-        )
-
-        indices_reducidos = (
-            indices_ordenados[:top_limit]
-        )
-
-        combinaciones_semillas = list(
-            combinations(
-                indices_reducidos,
-                k
-            )
-)
-
-        if self.logger:
-
-            self.logger.critic(
-                f"Explorando "
-                f"{len(combinaciones_semillas)} "
-                f"combinaciones de semillas."
-            )
-
-        for semillas in combinaciones_semillas:
-
+        def asignar_mecanismos_a_efectos(particion_efectos):
             """
-            Inicializar bloques.
+            Dada una partición de efectos {E1, ..., Ek}, asigna cada mecanismo
+            m_p al bloque Ej que tiene la mayor influencia sobre él.
             """
+            bloques = [set() for _ in range(len(particion_efectos))]
+            for i, e_set in enumerate(particion_efectos):
+                for eid in e_set:
+                    bloques[i].add((EFECTO, eid))
+            
+            for p_id in abs_p:
+                mejor_bloque = 0
+                max_infl = -1.0
+                for i, e_set in enumerate(particion_efectos):
+                    infl_total = sum(self.conectividad.get((p_id, eid), 0.0) for eid in e_set)
+                    if infl_total > max_infl:
+                        max_infl = infl_total
+                        mejor_bloque = i
+                bloques[mejor_bloque].add((ACTUAL, p_id))
+            
+            registrar_particion(bloques)
 
-            particion = []
+        def generar_particiones_efectos(elementos, sub_k):
+            if sub_k == 1:
+                yield [set(elementos)]
+                return
+            if sub_k == len(elementos):
+                yield [set([e]) for e in elementos]
+                return
+            if sub_k > len(elementos): return
+            
+            first = elementos[0]
+            rest = elementos[1:]
+            for p in generar_particiones_efectos(rest, sub_k - 1):
+                yield [set([first])] + p
+            for p in generar_particiones_efectos(rest, sub_k):
+                for i in range(len(p)):
+                    new_p = [s.copy() for s in p]
+                    new_p[i].add(first)
+                    yield new_p
 
-            for futuro_seed in semillas:
+        # 1. Semillas de Un solo Efecto (MIPs clásicas)
+        if k == 2:
+            for f_id in abs_f:
+                e1 = {f_id}
+                e2 = set(abs_f) - e1
+                asignar_mecanismos_a_efectos([e1, e2])
+        
+        # 2. Semillas Geométricas (Caminos Hamming)
+        niveles = sorted(self.caminos.keys())
+        for nivel in niveles[1:]:
+            for estado in self.caminos[nivel]:
+                estado = np.array(estado)
+                estado_comp = 1 - estado
+                key_act = (estado_base, tuple(estado))
+                key_cmp = (estado_base, tuple(estado_comp))
+                
+                act = self.tabla_transiciones.get(key_act)
+                cmp = self.tabla_transiciones.get(key_cmp)
+                if act is None or cmp is None: continue
 
-                bloque = set()
+                # Identificar bloque de efectos sugerido por la geometría
+                e_seed = set()
+                for idx_f, f_id in enumerate(abs_f):
+                    if act[idx_f] <= cmp[idx_f]:
+                        e_seed.add(f_id)
+                
+                if not e_seed or len(e_seed) == len(abs_f): continue
 
-                bloque.add(
-                    (EFECTO, futuro_seed)
-                )
+                # Dividir el resto de efectos en k-1 bloques
+                rest_e = sorted(list(set(abs_f) - e_seed))
+                if len(rest_e) >= k - 1:
+                    for p_rest in generar_particiones_efectos(rest_e, k - 1):
+                        asignar_mecanismos_a_efectos([e_seed] + p_rest)
 
-                particion.append(
-                    bloque
-                )
-
-            """
-            Asignar presentes.
-            """
-
-            for presente in presentes_totales:
-
-                bloque_destino = (
-                    self.best_block_for_present(
-                        presente,
-                        semillas
-                    )
-                )
-
-                particion[
-                    bloque_destino
-                ].add(
-                    (ACTUAL, presente)
-                )
-
-            """
-            Asignar futuros restantes.
-            """
-
-            futuros_restantes = [
-                idx
-                for idx in range(total_futuros)
-                if idx not in semillas
-            ]
-
-            for futuro in futuros_restantes:
-
-                bloque_destino = (
-                    self.best_block_for_future(
-                        futuro,
-                        semillas
-                    )
-                )
-
-                particion[
-                    bloque_destino
-                ].add(
-                    (EFECTO, futuro)
-                )
-
-            """
-            Validar estructura mínima.
-            """
-
-            if not self.valid_partition(
-                particion
-            ):
-                continue
-
-            """
-            Construir firma canónica
-            para evitar duplicados.
-            """
-
-            firma = tuple(
-                sorted(
-                    tuple(
-                        sorted(bloque)
-                    )
-                    for bloque in particion
-                )
-            )
-
-            if firma not in firmas_vistas:
-
-                firmas_vistas.add(
-                    firma
-                )
-
-                candidatos.append(
-                    copy.deepcopy(
-                        particion
-                    )
-                )
-
-        if not candidatos:
-
-            raise ValueError(
-                "No fue posible generar "
-                "particiones candidatas."
-            )
-
-        if self.logger:
-
-            self.logger.critic(
-                f"Generadas "
-                f"{len(candidatos)} "
-                f"particiones candidatas."
-            )
+        # 3. Si k es pequeño, añadir partición de efectos puramente exhaustiva
+        if len(abs_f) <= 10 and k <= 3:
+            for p_efectos in generar_particiones_efectos(list(abs_f), k):
+                asignar_mecanismos_a_efectos(p_efectos)
 
         return candidatos
 
-    def best_block_for_present(
-        self,
-        presente,
-        semillas
-    ):
-        """
-        Asigna un nodo ACTUAL al bloque cuya
-        semilla EFECTO tenga menor costo geométrico.
-        """
-
-        key = (
-            tuple(self.caminos[0][0]),
-            tuple(self.estado_final)
-        )
-
-        costos_globales = self.tabla_transiciones[key]
-
-        mejor_bloque = 0
-        mejor_score = float("inf")
-
-        for idx_bloque, semilla in enumerate(semillas):
-
-            costo_semilla = costos_globales[semilla]
-
-            """
-            Penalización estructural:
-            distancia topológica.
-            """
-
-            distancia = abs(
-                presente - semilla
-            )
-
-            score = (
-                costo_semilla
-                +
-                (0.15 * distancia)
-            )
-
-            if score < mejor_score:
-
-                mejor_score = score
-                mejor_bloque = idx_bloque
-
-        return mejor_bloque
-
-    def best_block_for_future(
-        self,
-        futuro,
-        semillas
-    ):
-        """
-        Asigna futuros restantes usando
-        similitud geométrica real.
-        """
-
-        key = (
-            tuple(self.caminos[0][0]),
-            tuple(self.estado_final)
-        )
-
-        costos_globales = self.tabla_transiciones[key]
-
-        costo_futuro = costos_globales[futuro]
-
-        mejor_bloque = 0
-        mejor_score = float("inf")
-
-        for idx_bloque, semilla in enumerate(semillas):
-
-            costo_semilla = costos_globales[semilla]
-
-            """
-            Diferencia geométrica entre nodos.
-            """
-
-            diferencia = abs(
-                costo_futuro - costo_semilla
-            )
-
-            """
-            Penalización estructural leve.
-            """
-
-            distancia = abs(
-                futuro - semilla
-            )
-
-            score = (
-                diferencia
-                +
-                (0.10 * distancia)
-            )
-
-            if score < mejor_score:
-
-                mejor_score = score
-                mejor_bloque = idx_bloque
-
-        return mejor_bloque
-
-    def valid_partition(
-        self,
-        particion
-    ):
-        """
-        Verifica que todos los bloques
-        tengan estructura válida.
-
-        Reglas:
-        --------
-
-        Cada bloque debe contener:
-
-            - mínimo un ACTUAL
-            - mínimo un EFECTO
-
-        Parameters
-        ----------
-        particion : list[set]
-
-        Returns
-        -------
-        bool
-        """
-
+    def valid_partition(self, particion):
+        if not particion: return False
+        efectos_cubiertos = set()
         for bloque in particion:
-
-            tiene_actual = any(
-                tipo == ACTUAL
-                for tipo, _ in bloque
-            )
-
-            tiene_efecto = any(
-                tipo == EFECTO
-                for tipo, _ in bloque
-            )
-
-            if not (
-                tiene_actual
-                and tiene_efecto
-            ):
-                return False
-
-        return True
+            if not bloque: return False
+            tiene_efecto = False
+            for tipo, nodo in bloque:
+                if tipo == EFECTO:
+                    efectos_cubiertos.add(nodo)
+                    tiene_efecto = True
+            if not tiene_efecto: return False
+        return efectos_cubiertos == set(self.sia_subsistema.indices_ncubos.tolist())

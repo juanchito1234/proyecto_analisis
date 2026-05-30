@@ -84,7 +84,7 @@ from pathlib import Path
 METHOD2_ROOT = Path(__file__).resolve().parents[1]
 GEOMIP_ROOT = Path(__file__).resolve().parents[3]
 
-K = 2
+K = 3
 N = 10
 VERSION = "A"
 
@@ -380,6 +380,68 @@ def iniciar():
     )
     ejecutar_desde_excel(ruta_entrada, ruta_salida)
 
+def probar_geometric():
+    print("\n===== GEOMETRIC =====\n")
+
+    estado_inicial = ESTADO_INICIAL
+
+    condiciones = CONDICIONES
+
+    alcance = ALCANCE
+
+    mecanismo = MECANISMO
+
+    tpm_path = resolver_tpm_path(
+        estado_inicial,
+        archivo_tpm=TPM_FILE
+    )
+
+    print("TPM usada:")
+    print(tpm_path)
+
+    print("\nLeyendo TPM...")
+
+    tpm = np.genfromtxt(
+        tpm_path,
+        delimiter=","
+    )
+
+    print("Creando gestor...")
+
+    gestor = Manager(
+        estado_inicial
+    )
+
+    print("Creando estrategia...")
+
+    estrategia = GeometricSIA(
+        gestor
+    )
+
+    print("Aplicando estrategia...")
+
+    solucion = estrategia.aplicar_estrategia(
+        condiciones,
+        alcance,
+        mecanismo,
+        tpm
+    )
+
+    print("\n===== RESULTADO =====")
+
+    print("Pérdida:")
+    print(solucion.perdida)
+
+    print("\nPartición:")
+    print(solucion.particion)
+
+    solucion.particion = limpiar_particion(
+        solucion.particion
+    )
+
+    print("\nSolución completa:")
+    print(solucion)
+
 def probar_k_geometric():
 
     print("\n===== K-GEOMETRIC =====\n")
@@ -426,7 +488,7 @@ def probar_k_geometric():
         alcance=alcance,
         mecanismo=mecanismo,
         tpm=tpm,
-        k=2
+        k=K
     )
 
     print("\n===== RESULTADO =====")

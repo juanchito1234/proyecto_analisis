@@ -442,17 +442,17 @@ class System:
 
             alcance, mecanismo = bloque
 
-            # Validar alcance no vacío
-            if len(alcance) == 0:
+            # Validar alcance o mecanismo no vacío (el bloque debe tener algo)
+            if len(alcance) == 0 and len(mecanismo) == 0:
                 raise ValueError(
-                    f"El bloque {idx} tiene alcance vacío."
+                    f"El bloque {idx} está completamente vacío."
                 )
-
-            # Validar mecanismo no vacío
-            if len(mecanismo) == 0:
-                raise ValueError(
-                    f"El bloque {idx} tiene mecanismo vacío."
-                )
+            
+            # En k-particionar, cada n-cubo debe pertenecer a un alcance.
+            # Por lo tanto, si un bloque tiene alcance vacío, ese bloque
+            # no 'posee' ningún n-cubo y no afecta la distribución marginal
+            # del sistema resultante (es un bloque redundante).
+            # Permitiremos que el mecanismo sea vacío si el alcance no lo es.
 
             # Validar que alcance exista en sistema
             for nodo in alcance:

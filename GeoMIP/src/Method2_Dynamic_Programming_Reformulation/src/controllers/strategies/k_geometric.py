@@ -425,12 +425,10 @@ class KGeometric(SIA):
                     )
 
             except Exception as e:
-
-                self.logger.warning(
-                    f"Error evaluando "
-                    f"partición {idx}: "
-                    f"{str(e)}"
-                )
+                print("\n===== ERROR EN PARTICIÓN =====")
+                print(particion)
+                print(str(e))
+                print("==============================\n")
 
                 continue
 
@@ -520,18 +518,9 @@ class KGeometric(SIA):
                         f"{tipo}"
                     )
 
-            if not alcance:
-
+            if not alcance and not mecanismo:
                 raise ValueError(
-                    f"Bloque {idx} sin "
-                    f"variables EFECTO."
-                )
-
-            if not mecanismo:
-
-                raise ValueError(
-                    f"Bloque {idx} sin "
-                    f"variables ACTUAL."
+                    f"Bloque {idx} vacío."
                 )
 
             resultado.append(

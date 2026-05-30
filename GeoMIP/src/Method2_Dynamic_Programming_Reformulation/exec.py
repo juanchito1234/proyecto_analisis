@@ -1,5 +1,5 @@
 from src.models.base.application import aplicacion
-from src.main import ( iniciar, probar_k_geometric )
+from src.main import ( iniciar, probar_geometric, probar_k_geometric )
 
 
 def main():
