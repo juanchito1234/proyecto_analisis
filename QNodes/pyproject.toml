@@ -14,3 +14,9 @@ dependencies = [
     "pyttsx3==2.98",
     "colorama==0.4.5",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+]
