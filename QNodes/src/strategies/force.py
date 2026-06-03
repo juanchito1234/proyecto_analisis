@@ -334,3 +334,83 @@ Estado incial: {initial_state}.
         futuro_removido = np.setdiff1d(candidato.dims_ncubos, sub_alcance)
         presente_removido = np.setdiff1d(candidato.dims_ncubos, sub_mecanismo)
         return f"{literales(futuro_removido)}|{literales(presente_removido)}"
+
+class BruteForceK(SIA):
+    """
+    Estrategia de Fuerza Bruta para k-particiones.
+    Se utiliza como baseline de validación para redes pequeñas (N<=6).
+    """
+
+    def __init__(self, tpm: np.ndarray, k: int):
+        super().__init__(tpm)
+        if not (2 <= k <= 5):
+            raise ValueError("k debe estar entre 2 y 5")
+        self.k = k
+        self.distancia_metrica: Callable = seleccionar_emd()
+        self.logeador = SafeLogger("BruteForceK_strategy")
+
+    def aplicar_estrategia(
+        self, estado_inicial: str, condiciones: str, alcance: str, mecanismo: str
+    ):
+        self.sia_preparar_subsistema(estado_inicial, condiciones, alcance, mecanismo)
+
+        solucion_base = Solution(
+            f"BruteForce_{self.k}",
+            DUMMY_EMD,
+            self.sia_dists_marginales,
+            DUMMY_ARR,
+            ERROR_PARTITION,
+            quiere_hablar=True,
+        )
+
+        small_phi = np.inf
+        mejor_dist_marg: np.ndarray = DUMMY_ARR
+        mejor_particion_cruda = None
+
+        futuros = self.sia_subsistema.indices_ncubos
+        presentes = self.sia_subsistema.dims_ncubos
+
+        futuros_vertices = tuple((EFFECT, idx) for idx in futuros)
+        presentes_vertices = tuple((ACTUAL, idx) for idx in presentes)
+
+        vertices = list(presentes_vertices + futuros_vertices)
+
+        from src.funcs.force import generar_k_particiones
+
+        for particion_k in generar_k_particiones(vertices, self.k):
+            particiones_formato_sistema = []
+            for parte in particion_k:
+                alcance_parte = [idx for t, idx in parte if t == EFFECT]
+                mecanismo_parte = [idx for t, idx in parte if t == ACTUAL]
+                particiones_formato_sistema.append((
+                    np.array(alcance_parte, dtype=np.int8),
+                    np.array(mecanismo_parte, dtype=np.int8)
+                ))
+
+            subsistema = self.sia_subsistema
+            particion = subsistema.k_partir(particiones_formato_sistema)
+
+            part_marg_dist = particion.distribucion_marginal()
+            emd_value = self.distancia_metrica(
+                part_marg_dist, self.sia_dists_marginales
+            )
+
+            if emd_value < small_phi:
+                small_phi = emd_value
+                mejor_dist_marg = part_marg_dist
+                mejor_particion_cruda = particion_k
+
+                if emd_value == FLOAT_ZERO:
+                    solucion_base.perdida = emd_value
+                    solucion_base.distribucion_particion = part_marg_dist
+                    solucion_base.particion = str(mejor_particion_cruda)
+                    solucion_base.tiempo_ejecucion = (
+                        time.time() - self.sia_tiempo_inicio
+                    )
+                    return solucion_base
+
+        solucion_base.perdida = small_phi
+        solucion_base.distribucion_particion = mejor_dist_marg
+        solucion_base.particion = str(mejor_particion_cruda)
+        solucion_base.tiempo_ejecucion = time.time() - self.sia_tiempo_inicio
+        return solucion_base

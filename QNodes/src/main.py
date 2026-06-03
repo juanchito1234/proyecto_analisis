@@ -1,39 +1,43 @@
 from src.controllers.manager import Manager
-
-from src.strategies.force import BruteForce
-from src.strategies.k_q_nodes import KQNodes
+from src.strategies.q_nodes import QNodes
 from src.models.base.application import aplicacion
 
-K = 3
-N = 15
+K = 2
+N = 8
 VERSION = "A"
 
 def iniciar():
-    """Punto de entrada"""
 
-    # Generación automática basada en N
     estado_inicial = "1" + ("0" * (N - 1))
-    condiciones =    "1" * N
-    alcance =        "1" * N
-    mecanismo =      "1" * N
+    condiciones = "1" * N
+    alcance = "1" * N
+    mecanismo = "1" * N
 
-    # Configurar la versión para que el Manager cargue la TPM correcta
     aplicacion.set_pagina_red_muestra(VERSION)
 
     gestor_redes = Manager(estado_inicial)
-    
-    print(f"Abriendo archivo: {gestor_redes.tpm_filename}")
-    
+
+    print(f"Archivo TPM: {gestor_redes.tpm_filename}")
+    print(f"N = {N}")
+    print(f"k = {K}")
+
     mpt = gestor_redes.cargar_red()
 
-    ### Ejemplo de solución mediante módulo heurístico de k-particiones ###
-    analizador_kq = KQNodes(mpt)
+    analizador = QNodes(mpt)
 
-    sia_k = analizador_kq.aplicar_estrategia(
+    resultado = analizador.aplicar_estrategia(
         estado_inicial,
         condiciones,
         alcance,
         mecanismo,
         k=K
     )
-    print(sia_k)
+
+    print("\n===== RESULTADO =====")
+    print("Perdida:", resultado.perdida)
+    print("Particion:")
+    print(resultado.particion)
+    print("Tiempo:", resultado.tiempo_ejecucion)
+
+if __name__ == "__main__":
+    iniciar()

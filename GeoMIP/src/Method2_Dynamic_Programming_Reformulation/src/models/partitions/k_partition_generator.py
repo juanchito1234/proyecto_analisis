@@ -7,7 +7,6 @@ from src.constants.base import (
     EFECTO,
 )
 
-
 class KPartitionGenerator:
     """
     Generador geométrico de k-particiones candidatas.
@@ -71,6 +70,10 @@ class KPartitionGenerator:
         self.caminos = caminos
         self.estado_final = estado_final
         self.logger = logger
+        self.MAX_PARTICIONES_POR_SEMILLA = 50
+        self.MAX_CANDIDATOS_TOTALES = 2000
+        self.num_consultas = 0
+        self.estados_usados = set()
         
         # Pre-calcular matriz de conectividad (Influencia Mecanismo -> Efecto)
         # C[idx_mecanismo][idx_efecto] = Cambio promedio en P(efecto) al mutar mecanismo
@@ -163,14 +166,31 @@ class KPartitionGenerator:
         # 2. Semillas Geométricas (Caminos Hamming)
         niveles = sorted(self.caminos.keys())
         for nivel in niveles[1:]:
+            if (
+                len(candidatos)
+                >=
+                self.MAX_CANDIDATOS_TOTALES
+            ):
+                break
             for estado in self.caminos[nivel]:
                 estado = np.array(estado)
                 estado_comp = 1 - estado
                 key_act = (estado_base, tuple(estado))
                 key_cmp = (estado_base, tuple(estado_comp))
                 
-                act = self.tabla_transiciones.get(key_act)
-                cmp = self.tabla_transiciones.get(key_cmp)
+                self.num_consultas += 1
+                self.estados_usados.add(key_act)
+                act = self.tabla_transiciones.get_cost(
+                    estado_base,
+                    estado.tolist()
+                )
+
+                self.num_consultas += 1
+                self.estados_usados.add(key_cmp)
+                cmp = self.tabla_transiciones.get_cost(
+                    estado_base,
+                    estado_comp.tolist()
+                )
                 if act is None or cmp is None: continue
 
                 # Identificar bloque de efectos sugerido por la geometría
@@ -184,14 +204,53 @@ class KPartitionGenerator:
                 # Dividir el resto de efectos en k-1 bloques
                 rest_e = sorted(list(set(abs_f) - e_seed))
                 if len(rest_e) >= k - 1:
-                    for p_rest in generar_particiones_efectos(rest_e, k - 1):
-                        asignar_mecanismos_a_efectos([e_seed] + p_rest)
+                    contador_semilla = 0
+                    for p_rest in generar_particiones_efectos(
+                        rest_e,
+                        k - 1
+                    ):
+
+                        asignar_mecanismos_a_efectos(
+                            [e_seed] + p_rest
+                        )
+
+                        contador_semilla += 1
+
+                        if (
+                            contador_semilla
+                            >=
+                            self.MAX_PARTICIONES_POR_SEMILLA
+                        ):
+                            break
+
+                        if (
+                            len(candidatos)
+                            >=
+                            self.MAX_CANDIDATOS_TOTALES
+                        ):
+                            break
 
         # 3. Si k es pequeño, añadir partición de efectos puramente exhaustiva
-        if len(abs_f) <= 10 and k <= 3:
+        if len(abs_f) <= 8 and k <= 3:
             for p_efectos in generar_particiones_efectos(list(abs_f), k):
                 asignar_mecanismos_a_efectos(p_efectos)
+        
+        candidatos.sort(
+            key=self.score_particion,
+            reverse=True
+        )
 
+        candidatos = candidatos[:300]
+
+        print(
+            "Consultas realizadas:",
+            self.num_consultas
+        )
+
+        print(
+            "Estados únicos usados:",
+            len(self.estados_usados)
+        )
         return candidatos
 
     def valid_partition(self, particion):
@@ -206,3 +265,32 @@ class KPartitionGenerator:
                     tiene_efecto = True
             if not tiene_efecto: return False
         return efectos_cubiertos == set(self.sia_subsistema.indices_ncubos.tolist())
+    
+    def score_particion(
+        self,
+        particion
+    ):
+        score = 0
+
+        for bloque in particion:
+
+            efectos = [
+                n
+                for t, n in bloque
+                if t == EFECTO
+            ]
+
+            for i in efectos:
+                for j in efectos:
+
+                    if i == j:
+                        continue
+
+                    score += (
+                        self.conectividad.get(
+                            (i, j),
+                            0
+                        )
+                    )
+
+        return score

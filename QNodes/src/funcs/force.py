@@ -129,3 +129,29 @@ def biparticiones(
 
 def subconjuntos(arr: np.ndarray):
     return chain.from_iterable(combinations(arr, r) for r in range(len(arr) + 1))
+
+
+def generar_k_particiones(vertices, k):
+    """
+    Genera exhaustivamente todas las k-particiones posibles de una lista de vértices.
+    """
+    if k == 1:
+        yield [vertices]
+        return
+    if len(vertices) == k:
+        yield [[v] for v in vertices]
+        return
+    if len(vertices) < k:
+        return
+    
+    primer = vertices[0]
+    resto = vertices[1:]
+    
+    for p in generar_k_particiones(resto, k - 1):
+        yield [[primer]] + p
+        
+    for p in generar_k_particiones(resto, k):
+        for i in range(k):
+            nueva_p = [parte[:] for parte in p]
+            nueva_p[i].append(primer)
+            yield nueva_p

@@ -1,5 +1,9 @@
 from colorama import init, Fore, Style
-import pyttsx3
+try:
+    import pyttsx3
+except ImportError:
+    pyttsx3 = None
+
 from pyttsx3.engine import Engine
 from pyttsx3.voice import Voice
 import numpy as np

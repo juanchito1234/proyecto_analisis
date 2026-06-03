@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 
 class TransitionGeometry:
@@ -146,6 +147,29 @@ class TransitionGeometry:
             )
         ]
 
+        """
+         Mapeo de estados a enteros para indexación rápida.
+        """
+        self._state_to_int = {
+            tuple(self.estado_inicial): 0
+        }
+
+        self._flat_data = np.array(
+            [
+                ncubo.data.ravel()
+                for ncubo in self.sia_subsistema.ncubos
+            ]
+        )
+
+        self._factores = {
+            i: 1/(2**i)
+            for i in range(
+                len(self.estado_inicial)+1
+            )
+        }
+
+        self.num_costos_calculados = 0
+
     def build_geometry(self):
         """
         Construye completamente la geometría
@@ -168,24 +192,35 @@ class TransitionGeometry:
         None
         """
 
+        t0 = time.time()
         total_bits = len(
             self.estado_inicial
         )
+        print("Estado inicial:", time.time() - t0)
 
-        for nivel in range(
-            1,
-            total_bits + 1
-        ):
+
+        for nivel in range(1, total_bits + 1):
+            t_nivel = time.time()
 
             self.calcular_costos_nivel(
                 self.estado_final,
                 nivel
             )
 
+            print(
+                f"Nivel {nivel}:",
+                time.time() - t_nivel
+            )
+
+        print(
+            "Costos calculados:",
+            self.num_costos_calculados
+        )
+
     def calcular_costos_nivel(
         self,
         estado_final,
-        nivel
+        nivel,
     ):
         """
         Construye estados alcanzables para
@@ -248,21 +283,18 @@ class TransitionGeometry:
                             nuevo_estado.tolist()
                         )
 
-                        self.calcular_costo(
-                            self.caminos[0][0],
-                            nuevo_estado.tolist(),
-                            self.idx_ncubos
-                        )
-
                         visitados.add(
                             nuevo_estado_tuple
                         )
+
+                        self.state_to_int(nuevo_estado)
 
     def calcular_costo(
         self,
         estado_inicial,
         estado_final,
-        ncubos
+        ncubos,
+        distancia_hamming
     ):
         """
         Calcula el costo geométrico:
@@ -297,6 +329,7 @@ class TransitionGeometry:
         -------
         None
         """
+        self.num_costos_calculados += 1
 
         key = (
             tuple(estado_inicial),
@@ -319,41 +352,21 @@ class TransitionGeometry:
                 )
             ]
 
-        distancia_hamming = (
-            self.hamming(
-                estado_inicial,
-                estado_final
-            )
-        )
-
-        factor = (
-            1 /
-            (2 ** distancia_hamming)
-        )
+        factor = self._factores[
+            distancia_hamming
+        ]
 
         """
         Conversión Little-Endian
         para indexación rápida.
         """
 
-        estado_ini_int = int(
-            "".join(
-                map(
-                    str,
-                    estado_inicial[::-1]
-                )
-            ),
-            2
+        estado_ini_int = self.state_to_int(
+            estado_inicial
         )
 
-        estado_fin_int = int(
-            "".join(
-                map(
-                    str,
-                    estado_final[::-1]
-                )
-            ),
-            2
+        estado_fin_int = self.state_to_int(
+            estado_final
         )
 
         """
@@ -361,20 +374,12 @@ class TransitionGeometry:
         """
 
         diffs = np.abs(
-            np.array([
-                flat[estado_ini_int]
-                for flat in self._flat_data
-            ])
+            self._flat_data[:, estado_ini_int]
             -
-            np.array([
-                flat[estado_fin_int]
-                for flat in self._flat_data
-            ])
+            self._flat_data[:, estado_fin_int]
         )
 
-        self.tabla_transiciones[key] = (
-            diffs.tolist()
-        )
+        self.tabla_transiciones[key] = diffs
 
         """
         Costos acumulados desde vecinos
@@ -415,72 +420,19 @@ class TransitionGeometry:
                     ):
                         continue
 
-                    for n in ncubos:
+                    self.tabla_transiciones[key] += (
+                        self.tabla_transiciones[temp_key]
+                    )
 
-                        self.tabla_transiciones[
-                            key
-                        ][n] += (
-                            self.tabla_transiciones[
-                                temp_key
-                            ][n]
-                        )
-
-        """
-        Aplicar factor geométrico.
-        """
-
-        resultado_final = []
-
-        for valor in (
-            self.tabla_transiciones[key]
-        ):
-
-            if valor is not None:
-
-                resultado_final.append(
-                    factor * valor
-                )
-
-            else:
-
-                resultado_final.append(
-                    None
-                )
-
-        self.tabla_transiciones[
-            key
-        ] = resultado_final
+        self.tabla_transiciones[key] = (
+            factor * self.tabla_transiciones[key]
+        )
 
     def hamming(
         self,
         a,
         b
     ):
-        """
-        Calcula distancia de Hamming
-        entre dos secuencias binarias.
-        """
-
-        if isinstance(a, str):
-            a = list(a)
-
-        if isinstance(b, str):
-            b = list(b)
-
-        max_len = max(
-            len(a),
-            len(b)
-        )
-
-        a = list(a)
-        b = list(b)
-
-        while len(a) < max_len:
-            a.insert(0, "0")
-
-        while len(b) < max_len:
-            b.insert(0, "0")
-
         return sum(
             x != y
             for x, y in zip(a, b)
@@ -512,3 +464,47 @@ class TransitionGeometry:
         """
 
         return self.caminos
+    
+    def state_to_int(self, estado):
+        key = tuple(estado)
+
+        if key not in self._state_to_int:
+
+            self._state_to_int[key] = int(
+                "".join(
+                    map(
+                        str,
+                        estado[::-1]
+                    )
+                ),
+                2
+            )
+
+        return self._state_to_int[key]
+    
+    def get_cost(
+        self,
+        estado_inicial,
+        estado_final
+    ):
+        key = (
+            tuple(estado_inicial),
+            tuple(estado_final)
+        )
+
+        if key not in self.tabla_transiciones:
+            self.num_costos_calculados += 1
+
+            distancia_hamming = self.hamming(
+                estado_inicial,
+                estado_final
+            )
+
+            self.calcular_costo(
+                estado_inicial,
+                estado_final,
+                self.idx_ncubos,
+                distancia_hamming
+            )
+
+        return self.tabla_transiciones[key]

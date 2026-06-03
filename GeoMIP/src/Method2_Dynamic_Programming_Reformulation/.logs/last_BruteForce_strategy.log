@@ -1,0 +1,2 @@
+2026-05-29 21:51:39 [BruteForce_strategy] CRITICAL MainProcess: Iniciando búsqueda exhaustiva k-MIP con k=4, N_futuro=4, N_presente=4
+2026-05-29 21:51:39 [BruteForce_strategy] CRITICAL MainProcess: k-MIP exacta encontrada con pérdida mínima=1.25

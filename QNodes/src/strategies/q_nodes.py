@@ -4,7 +4,7 @@ import numpy as np
 from src.middlewares.slogger import SafeLogger
 from src.funcs.iit import emd_efecto, ABECEDARY
 from src.middlewares.profile import gestor_perfilado, profile
-from src.funcs.format import fmt_biparticion_q
+from src.funcs.format import fmt_biparticion_q, fmt_k_particion_q
 from src.models.base.sia import SIA
 
 from src.models.core.solution import Solution
@@ -123,6 +123,7 @@ class QNodes(SIA):
         condicion: str,
         alcance: str,
         mecanismo: str,
+        k: int = 2,
     ):
         self.sia_preparar_subsistema(estado_inicial, condicion, alcance, mecanismo)
 
@@ -149,16 +150,61 @@ class QNodes(SIA):
 
         vertices = list(presente + futuro)
         self.vertices = set(presente + futuro)
-        mip = self.algorithm(vertices)
+        
+        k = max(2, min(5, k))
+        grupos = [vertices]
+        
+        perdida_final = INFTY_POS
+        dist_marginal_final = None
+        
+        while len(grupos) < k:
+            mejor_emd_global = INFTY_POS
+            mejor_dist_global = None
+            mejor_idx_grupo = -1
+            mejor_division = None
+            
+            for idx_g, grupo in enumerate(grupos):
+                if len(grupo) <= 1:
+                    continue
+                
+                self.memoria_grupo_candidato.clear()
+                mip = self.algorithm(grupo)
+                
+                grupo_mip = list(mip)
+                grupo_complemento = list(set(grupo) - set(mip))
+                
+                nueva_particion_nodos = grupos[:idx_g] + [grupo_mip, grupo_complemento] + grupos[idx_g+1:]
+                
+                particiones = []
+                for parte_nodos in nueva_particion_nodos:
+                    alc = np.array([idx for t, idx in parte_nodos if t == EFFECT], dtype=np.int8)
+                    mec = np.array([idx for t, idx in parte_nodos if t == ACTUAL], dtype=np.int8)
+                    particiones.append((alc, mec))
+                    
+                sistema_particionado = self.sia_subsistema.k_partir(particiones)
+                dist_marginal = sistema_particionado.distribucion_marginal()
+                emd_candidata = emd_efecto(dist_marginal, self.sia_dists_marginales)
+                
+                if emd_candidata < mejor_emd_global:
+                    mejor_emd_global = emd_candidata
+                    mejor_dist_global = dist_marginal
+                    mejor_idx_grupo = idx_g
+                    mejor_division = (grupo_mip, grupo_complemento)
+                    
+            if mejor_idx_grupo == -1:
+                break
+                
+            grupos = grupos[:mejor_idx_grupo] + list(mejor_division) + grupos[mejor_idx_grupo+1:]
+            perdida_final = mejor_emd_global
+            dist_marginal_final = mejor_dist_global
 
-        fmt_mip = fmt_biparticion_q(list(mip), self.nodes_complement(mip))
-        perdida_mip, dist_marginal_mip = self.memoria_grupo_candidato[mip]
+        fmt_mip = fmt_k_particion_q(grupos)
 
         return Solution(
             estrategia=QNODES_LABEL,
-            perdida=perdida_mip,
+            perdida=perdida_final,
             distribucion_subsistema=self.sia_dists_marginales,
-            distribucion_particion=dist_marginal_mip,
+            distribucion_particion=dist_marginal_final,
             tiempo_total=time.time() - self.sia_tiempo_inicio,
             particion=fmt_mip,
         )
@@ -218,6 +264,25 @@ class QNodes(SIA):
         """
         indice_emd = INT_ZERO
 
+        if len(vertices) == 2:
+            # Condición Matemática: Cuando hay exactamente 2 vértices o subcomponentes, 
+            # len(deltas_ciclo) es 1. El bucle j in range(0) nunca se ejecuta, por lo 
+            # que nunca evaluamos deltas. Pero en una red de 2 nodos, solo existe 
+            # 1 partición posible. La evaluamos explícitamente:
+            emd_union, emd_delta, dist_marginal_delta = self.funcion_submodular(
+                vertices[1], [vertices[0]]
+            )
+            clave_actual = (
+                tuple(vertices[1])
+                if isinstance(vertices[1], list)
+                else (vertices[1],)
+            )
+            self.memoria_grupo_candidato[clave_actual] = (
+                emd_delta,
+                dist_marginal_delta,
+            )
+            return clave_actual
+
         for i in range(len(vertices) - 1):
             # self.logger.debug(f"total: {len(vertices) - i}")
             omegas_ciclo = [vertices[0]]
@@ -238,18 +303,22 @@ class QNodes(SIA):
 
                     emd_iteracion = emd_union - emd_delta
 
+                    # Guardamos TODAS las configuraciones delta evaluadas. Debido a que 
+                    # la función de EMD no es estrictamente submodular ni simétrica,
+                    # la heurística puede descartar mínimos globales tempranos.
+                    clave_actual = (
+                        tuple(deltas_ciclo[k])
+                        if isinstance(deltas_ciclo[k], list)
+                        else (deltas_ciclo[k],)
+                    )
+                    self.memoria_grupo_candidato[clave_actual] = (
+                        emd_delta,
+                        dist_marginal_delta,
+                    )
+
                     if emd_iteracion < emd_local:
                         if emd_delta == INT_ZERO:
-                            clave = (
-                                tuple(deltas_ciclo[k])
-                                if isinstance(deltas_ciclo[k], list)
-                                else (deltas_ciclo[k],)
-                            )
-                            self.memoria_grupo_candidato[clave] = (
-                                emd_delta,
-                                dist_marginal_delta,
-                            )
-                            return clave
+                            return clave_actual
 
                         emd_local = emd_iteracion
                         indice_mip = k
@@ -259,14 +328,6 @@ class QNodes(SIA):
 
                 omegas_ciclo.append(deltas_ciclo[indice_mip])
                 deltas_ciclo.pop(indice_mip)
-            self.memoria_grupo_candidato[
-                tuple(
-                    deltas_ciclo[LAST_IDX]
-                    if isinstance(deltas_ciclo[LAST_IDX], list)
-                    else deltas_ciclo
-                )
-            ] = emd_particion_candidata, dist_particion_candidata
-
             par_candidato = (
                 [omegas_ciclo[LAST_IDX]]
                 if isinstance(omegas_ciclo[LAST_IDX], tuple)
@@ -281,6 +342,24 @@ class QNodes(SIA):
             omegas_ciclo.append(par_candidato)
 
             vertices = omegas_ciclo
+
+        if len(vertices) == 2:
+            # Condición Matemática: Cuando hay exactamente 2 vértices o subcomponentes, 
+            # len(deltas_ciclo) es 1. El bucle j in range(0) nunca se ejecuta, por lo 
+            # que nunca evaluamos deltas. Pero en una red de 2 nodos, solo existe 
+            # 1 partición posible. La evaluamos explícitamente:
+            emd_union, emd_delta, dist_marginal_delta = self.funcion_submodular(
+                vertices[1], [vertices[0]]
+            )
+            clave_actual = (
+                tuple(vertices[1])
+                if isinstance(vertices[1], list)
+                else (vertices[1],)
+            )
+            self.memoria_grupo_candidato[clave_actual] = (
+                emd_delta,
+                dist_marginal_delta,
+            )
 
         return min(
             self.memoria_grupo_candidato,

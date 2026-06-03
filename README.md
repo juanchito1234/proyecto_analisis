@@ -39,7 +39,8 @@ uv sync
 ### Ejecucion
 
 ```bash
-uv run exec.py
+uv run q_nodes.py
+uv run force.py
 ```
 
 ### Que hace

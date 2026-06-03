@@ -139,7 +139,8 @@ class KGeometric(SIA):
         alcance: str,
         mecanismo: str,
         tpm: np.ndarray,
-        k: int = 3
+        k: int = 3,
+        MAX_CANDIDATOS = 300
     ):
         """
         Punto de entrada principal de la
@@ -272,7 +273,18 @@ class KGeometric(SIA):
             )
         )
 
+        inicio = time.time()
+
         self.geometry.build_geometry()
+        print(
+            "Entradas tabla:",
+            len(self.geometry.get_transition_table())
+        )
+
+        print(
+            "Geometria:",
+            time.time() - inicio
+        )
 
         """
         Inicializar generador
@@ -286,7 +298,6 @@ class KGeometric(SIA):
                 ),
                 tabla_transiciones=(
                     self.geometry
-                    .get_transition_table()
                 ),
                 caminos=(
                     self.geometry
@@ -384,11 +395,23 @@ class KGeometric(SIA):
             f"de k-MIP con k={k}"
         )
 
+        inicio = time.time()
+
         candidatos = (
             self.partition_generator
             .identificar_particiones_candidatas(
                 k
             )
+        )
+
+        print(
+            "Generación:",
+            time.time() - inicio
+        )
+
+        print(
+            "Candidatos:",
+            len(candidatos)
         )
 
         if not candidatos:
@@ -402,12 +425,12 @@ class KGeometric(SIA):
 
         menor_perdida = float("inf")
 
+        inicio = time.time()
         for idx, particion in enumerate(
             candidatos
         ):
 
             try:
-
                 perdida, _ = (
                     self.partition_evaluator
                     .evaluate_partition(
@@ -420,10 +443,16 @@ class KGeometric(SIA):
 
                     menor_perdida = perdida
 
+                    if perdida == 0:
+                        self.logger.critic(
+                            "Solución perfecta encontrada."
+                        )
+
+                        return particion
+
                     mejor_particion = (
                         particion
                     )
-
             except Exception as e:
                 print("\n===== ERROR EN PARTICIÓN =====")
                 print(particion)
@@ -431,6 +460,11 @@ class KGeometric(SIA):
                 print("==============================\n")
 
                 continue
+
+        print(
+            "evaluacion:",
+            time.time() - inicio
+        )
 
         if mejor_particion is None:
 
@@ -443,6 +477,11 @@ class KGeometric(SIA):
             f"k-MIP encontrada "
             f"con pérdida mínima="
             f"{menor_perdida}"
+        )
+
+        print(
+            "Costos lazy calculados:",
+            self.geometry.num_costos_calculados
         )
 
         return mejor_particion

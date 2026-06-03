@@ -66,3 +66,16 @@ def fmt_parte_q(
     width = max(len(str_purv), len(str_mech)) + 2
 
     return f"⎛{str_purv:^{width}}⎞", f"⎝{str_mech:^{width}}⎠"
+
+def fmt_k_particion_q(
+    partes: list[list[tuple[int, int]]],
+    to_sort: bool = True,
+) -> str:
+    top = ""
+    bottom = ""
+    for parte in partes:
+        t, b = fmt_parte_q(parte, to_sort)
+        top += t
+        bottom += b
+    return f"{top}\n{bottom}\n"
+
