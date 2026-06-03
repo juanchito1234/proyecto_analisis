@@ -25,6 +25,140 @@ pip install uv
 - `GeoMIP/data/samples/`: datasets TPM `N*.csv` usados por Method1/Method2.
 - `GeoMIP/results/`: archivos Excel de entrada/salida para Method1/Method2.
 
+## Distribución de Carpetas y Archivos
+
+A continuación se muestra la estructura jerárquica completa del proyecto, con anotaciones sobre el propósito de cada archivo y carpeta relevante.
+
+```
+proyecto_analisis/
+│
+├── README.md                          # Este archivo – guía general del proyecto
+├── Proyecto_KQMIP.docx                # Documento del proyecto académico
+│
+├── QNodes/                            # ── Implementación del algoritmo QNodes ──
+│   ├── pyproject.toml                 # Configuración del proyecto y dependencias (uv)
+│   ├── q_nodes.py                     # Punto de entrada: ejecuta la estrategia QNodes
+│   ├── force.py                       # Punto de entrada: ejecuta la estrategia BruteForce
+│   │
+│   ├── src/                           # Código fuente principal
+│   │   ├── main.py                    # Orquestador principal (QNodes)
+│   │   ├── main_force.py              # Orquestador principal (BruteForce)
+│   │   │
+│   │   ├── constants/                 # Constantes globales
+│   │   │   ├── base.py                # Índices, etiquetas y valores por defecto
+│   │   │   ├── error.py               # Mensajes de error
+│   │   │   └── models.py              # Tags y etiquetas de modelos
+│   │   │
+│   │   ├── funcs/                     # Funciones utilitarias puras
+│   │   │   ├── iit.py                 # Cálculo de EMD y lógica IIT
+│   │   │   ├── format.py              # Formateo visual de particiones
+│   │   │   └── force.py               # Generación exhaustiva de biparticiones
+│   │   │
+│   │   ├── middlewares/               # Servicios transversales
+│   │   │   ├── profile.py             # Perfilado de rendimiento (pyinstrument)
+│   │   │   └── slogger.py             # Logger seguro con colores y niveles
+│   │   │
+│   │   ├── models/                    # Modelos del dominio
+│   │   │   ├── base/
+│   │   │   │   ├── sia.py             # Clase base SIA (Sistema de Información Activo)
+│   │   │   │   └── application.py     # Configuración global (notación, distancia)
+│   │   │   ├── core/
+│   │   │   │   ├── system.py          # System: motor de estados, bipartir(), k_partir()
+│   │   │   │   ├── ncube.py           # NCube: tensor probabilístico N-dimensional
+│   │   │   │   └── solution.py        # Solution: encapsula resultado (φ, partición)
+│   │   │   └── enums/
+│   │   │       ├── distance.py        # Enum de métricas de distancia
+│   │   │       ├── notation.py        # Enum de notación (little/big-endian)
+│   │   │       └── temporal_emd.py    # Enum de modos temporales EMD
+│   │   │
+│   │   ├── strategies/                # Estrategias de búsqueda de particiones
+│   │   │   ├── q_nodes.py             # QNodes: algoritmo Greedy submodular (k-particiones)
+│   │   │   ├── force.py               # BruteForce: búsqueda exhaustiva
+│   │   │   └── phi.py                 # Phi: cálculo directo de φ
+│   │   │
+│   │   └── .samples/                  # Matrices TPM de prueba (CSV)
+│   │
+│   └── tests/                         # Pruebas unitarias (pytest)
+│       └── test_qnodes.py             # Tests de QNodes para k=2, k=3, k=4
+│
+├── GeoMIP/                            # ── Implementación del algoritmo GeoMIP ──
+│   ├── Dataset_Description.md         # Descripción de los datasets utilizados
+│   │
+│   ├── data/
+│   │   ├── creation.py                # Script de generación de TPMs sintéticas
+│   │   └── samples/                   # Datasets TPM en formato CSV
+│   │       ├── N3A.csv ... N3B.csv    # Redes de 3 nodos
+│   │       ├── N4A.csv ... N4C.csv    # Redes de 4 nodos
+│   │       ├── N5A.csv, N5B.csv       # Redes de 5 nodos
+│   │       ├── N6A.csv                # Red de 6 nodos
+│   │       ├── N8A.csv                # Red de 8 nodos
+│   │       ├── N10A.csv               # Red de 10 nodos
+│   │       └── N15A.csv, N15B.csv     # Redes de 15 nodos
+│   │
+│   ├── results/                       # Archivos de entrada/salida Excel
+│   │   ├── Pruebas_Metodo2.xlsx       # Entrada: configuraciones de prueba
+│   │   ├── pruebas_Metodo1.xlsx       # Entrada: configuraciones Método 1
+│   │   └── resultados_Geometric.xlsx  # Salida: resultados de ejecuciones
+│   │
+│   └── src/
+│       └── Method2_Dynamic_Programming_Reformulation/
+│           ├── pyproject.toml         # Configuración del proyecto y dependencias (uv)
+│           ├── exec.py                # Punto de entrada: procesamiento por lotes
+│           │
+│           └── src/                   # Código fuente principal
+│               ├── main.py            # Orquestador principal (carga Excel, ejecuta)
+│               │
+│               ├── constants/         # Constantes globales
+│               │   ├── base.py        # Índices, etiquetas y valores por defecto
+│               │   ├── error.py       # Mensajes de error
+│               │   └── models.py      # Tags y etiquetas de modelos
+│               │
+│               ├── funcs/             # Funciones utilitarias puras
+│               │   ├── base.py        # Funciones base (reindexar, etc.)
+│               │   ├── format.py      # Formateo visual de particiones
+│               │   └── system.py      # Funciones auxiliares del sistema
+│               │
+│               ├── middlewares/       # Servicios transversales
+│               │   ├── profile.py     # Perfilado de rendimiento
+│               │   └── slogger.py     # Logger seguro con colores
+│               │
+│               ├── controllers/       # Controladores y estrategias
+│               │   ├── manager.py     # Manager: carga de datos desde Excel/CSV
+│               │   └── strategies/
+│               │       ├── geometric.py      # GeoMIP original (biparticiones)
+│               │       ├── k_geometric.py    # KGeoMIP extendido (k-particiones)
+│               │       ├── k_brute_force.py  # KBruteForce (fuerza bruta k-particiones)
+│               │       ├── force.py          # BruteForce original (biparticiones)
+│               │       ├── q_nodes.py        # QNodes adaptado para GeoMIP
+│               │       └── phi.py            # Cálculo directo de φ
+│               │
+│               ├── models/            # Modelos del dominio
+│               │   ├── base/
+│               │   │   ├── sia.py             # Clase base SIA
+│               │   │   └── application.py     # Configuración global
+│               │   ├── core/
+│               │   │   ├── system.py          # System: motor de estados y k-particiones
+│               │   │   ├── ncube.py           # NCube: tensor probabilístico
+│               │   │   └── solution.py        # Solution: resultado (φ, partición)
+│               │   ├── enums/
+│               │   │   ├── distance.py        # Enum de métricas de distancia
+│               │   │   └── notation.py        # Enum de notación
+│               │   ├── geometry/
+│               │   │   └── transition_geometry.py  # Geometría de transiciones (Hamming)
+│               │   └── partitions/
+│               │       ├── k_partition_generator.py  # Generador de k-particiones (Stirling)
+│               │       └── partition_evaluator.py    # Evaluador EMD con caché
+│               │
+│               └── tests/             # Pruebas unitarias (pytest)
+│                   └── geometry/
+│                       ├── test_k_geometric.py          # Test de integración KGeoMIP
+│                       ├── test_partition_generator.py   # Tests del generador de particiones
+│                       ├── test_partition_evaluator.py   # Tests del evaluador EMD
+│                       └── test_transition_geometry.py   # Tests de la geometría de transición
+│
+└── docs/                              # Documentación adicional del proyecto
+```
+
 ## 1) Ejecutar QNodes
 
 ### Dependencias
