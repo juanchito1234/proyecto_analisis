@@ -1,6 +1,8 @@
 import time
 from typing import Union
 import numpy as np
+import psutil
+import os
 from src.middlewares.slogger import SafeLogger
 from src.funcs.iit import emd_efecto, ABECEDARY
 from src.middlewares.profile import gestor_perfilado, profile
@@ -158,6 +160,10 @@ class QNodes(SIA):
         dist_marginal_final = None
         
         while len(grupos) < k:
+            proceso = psutil.Process(os.getpid())
+            mem_info = proceso.memory_info()
+            self.logger.info(f"RAM Usage: {mem_info.rss / 1024 / 1024:.2f} MB")
+            
             mejor_emd_global = INFTY_POS
             mejor_dist_global = None
             mejor_idx_grupo = -1

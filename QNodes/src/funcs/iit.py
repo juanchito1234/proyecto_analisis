@@ -15,7 +15,7 @@ from src.models.base.application import aplicacion
 from src.models.enums.distance import MetricDistance
 from src.models.enums.notation import Notation
 from src.models.enums.temporal_emd import TimeEMD
-
+from src.middlewares.profile import profile
 
 # @cache
 def get_labels(n: int) -> tuple[str, ...]:
