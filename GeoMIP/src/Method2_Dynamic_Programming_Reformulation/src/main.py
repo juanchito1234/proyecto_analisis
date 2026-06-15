@@ -85,7 +85,7 @@ METHOD2_ROOT = Path(__file__).resolve().parents[1]
 GEOMIP_ROOT = Path(__file__).resolve().parents[3]
 
 K = 2
-N = 10
+N = 25
 VERSION = "A"
 TPM_FILE = f"N{N}{VERSION}.csv"
 ESTADO_INICIAL = "1" + ("0" * (N - 1))
@@ -308,6 +308,7 @@ def ejecutar_desde_excel(
     cantidad=50,
     estado_inicio: str | None = None,
     condiciones: str | None = None,
+    k: int | None = None,
 ):
     df = pd.read_excel(ruta_excel, sheet_name=8, usecols="B", skiprows=3, names=["Subsistema"]) #! here
     filas = df["Subsistema"].dropna().tolist()
@@ -328,13 +329,37 @@ def ejecutar_desde_excel(
             continue
 
         alcance = convertir_a_binario(partes[0][:len(partes[0]) - 3], n_bits=len(estado_inicio))
-        mecanismo = convertir_a_binario(partes[1][:len(partes[1]) - 1], n_bits=len(estado_inicio))
-        print(f"Iteración {i} - Alcance: {alcance}, Mecanismo: {mecanismo}")
+        mecanismus = convertir_a_binario(partes[1][:len(partes[1]) - 1], n_bits=len(estado_inicio))
+        print(f"Iteración {i} - Alcance: {alcance}, Mecanismo: {mecanismus}")
 
         config_sistema = Manager(estado_inicial=estado_inicio)
 
         resultado_queue = multiprocessing.Queue()
-        proceso = multiprocessing.Process(target=ejecutar_con_tiempo, args=(config_sistema, condiciones, alcance, mecanismo, resultado_queue, tpm))
+        if k is not None:
+            proceso = multiprocessing.Process(
+                target=ejecutar_k_geometric,
+                args=(
+                    config_sistema,
+                    condiciones,
+                    alcance,
+                    mecanismus,
+                    resultado_queue,
+                    tpm,
+                    k
+                )
+            )
+        else:
+            proceso = multiprocessing.Process(
+                target=ejecutar_con_tiempo,
+                args=(
+                    config_sistema,
+                    condiciones,
+                    alcance,
+                    mecanismus,
+                    resultado_queue,
+                    tpm
+                )
+            )
         
         proceso.start()
         proceso.join(timeout=3600)  
@@ -354,7 +379,7 @@ def ejecutar_desde_excel(
         resultados.append({
             "Iteración": i,
             "Alcance": alcance,
-            "Mecanismo": mecanismo,
+            "Mecanismo": mecanismus,
             "Partición": resultado["particion"],
             "Pérdida": resultado["perdida"],
             "Tiempo de ejecución (s)": resultado["tiempo"],
@@ -378,6 +403,21 @@ def iniciar():
         )
     )
     ejecutar_desde_excel(ruta_entrada, ruta_salida)
+
+def iniciar_k_geometric():
+    ruta_entrada = Path(
+        os.getenv(
+            "GEOMIP_INPUT_XLSX",
+            str(GEOMIP_ROOT / "results" / "Pruebas_Metodo2.xlsx"),
+        )
+    )
+    ruta_salida = Path(
+        os.getenv(
+            "GEOMIP_OUTPUT_XLSX",
+            str(GEOMIP_ROOT / "results" / f"resultados_K_Geometric_k{K}.xlsx"),
+        )
+    )
+    ejecutar_desde_excel(ruta_entrada, ruta_salida, k=K)
 
 def probar_geometric():
     print("\n===== GEOMETRIC =====\n")
