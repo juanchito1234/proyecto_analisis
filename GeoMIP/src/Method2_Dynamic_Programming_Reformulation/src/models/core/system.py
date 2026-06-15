@@ -6,6 +6,7 @@ from src.models.enums.notation import Notation
 from src.models.core.ncube import NCube
 
 from src.models.base.application import aplicacion
+from src.middlewares.tracker import track_time
 
 from src.constants.base import COLS_IDX
 
@@ -219,6 +220,7 @@ class System:
         )
         return new_sys
 
+    @track_time("bipartir")
     def bipartir(
         self,
         alcance: NDArray[np.int8],
@@ -491,6 +493,7 @@ class System:
 
         return True
 
+    @track_time("distribucion")
     def distribucion_marginal(self):
         """
         Partiendo de idealmente un subsistema o una bipartición como entrada, se seleccionana los nodos/elementos cuando su estado es OFF o inactivo para cada uno de ellos, mediante la propiedad de las distribuciones marginales, esto nos permite calcular más eficientemente la EMD-Effect, logrando así determinar un coste para dar comparación entre idealmente, un sub-sistema y una bipartición. Hemos de aplicar una reversión en la selección del estado inicial puesto

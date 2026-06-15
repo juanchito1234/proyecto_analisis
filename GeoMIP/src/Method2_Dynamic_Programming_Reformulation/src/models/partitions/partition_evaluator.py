@@ -82,6 +82,9 @@ class PartitionEvaluator:
         """
         self.memoria_marginales = {}
 
+        self.cache_hits = 0
+        self.cache_misses = 0
+
     def evaluate_partition(
         self,
         partition,
@@ -163,7 +166,10 @@ class PartitionEvaluator:
         """
 
         if key in self.memoria_particiones:
+            self.cache_hits += 1
             return self.memoria_particiones[key]
+        else:
+            self.cache_misses += 1
 
         """
         Cache INTERMEDIA:
@@ -298,6 +304,9 @@ class PartitionEvaluator:
         self.memoria_particiones.clear()
 
         self.memoria_marginales.clear()
+        
+        self.cache_hits = 0
+        self.cache_misses = 0
 
     def cache_stats(self):
         """
@@ -316,4 +325,16 @@ class PartitionEvaluator:
             "marginales": len(
                 self.memoria_marginales
             )
+        }
+
+    def get_cache_performance(self):
+        """
+        Retorna las métricas de desempeño de la cache.
+        """
+        total = self.cache_hits + self.cache_misses
+        porcentaje = (self.cache_hits / total * 100) if total > 0 else 0.0
+        return {
+            "hits": self.cache_hits,
+            "misses": self.cache_misses,
+            "porcentaje": porcentaje
         }

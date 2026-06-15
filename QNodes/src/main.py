@@ -2,8 +2,8 @@ from src.controllers.manager import Manager
 from src.strategies.q_nodes import QNodes
 from src.models.base.application import aplicacion
 
-K = 2
-N = 24
+K = 3
+N = 20
 VERSION = "A"
 
 def iniciar():

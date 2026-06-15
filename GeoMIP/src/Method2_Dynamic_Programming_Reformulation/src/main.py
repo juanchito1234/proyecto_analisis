@@ -73,6 +73,9 @@ try:
     from src.controllers.strategies.phi import Phi
 except Exception:
     Phi = None
+import tracemalloc
+from src.funcs.plotter import generar_graficos
+from src.middlewares.tracker import reset_times, function_times
 import multiprocessing
 import numpy as np
 import pandas as pd
@@ -84,8 +87,8 @@ from pathlib import Path
 METHOD2_ROOT = Path(__file__).resolve().parents[1]
 GEOMIP_ROOT = Path(__file__).resolve().parents[3]
 
-K = 3
-N = 25
+K = 2
+N = 20
 VERSION = "A"
 TPM_FILE = f"N{N}{VERSION}.csv"
 ESTADO_INICIAL = "1" + ("0" * (N - 1))
@@ -482,6 +485,9 @@ def probar_geometric():
     print(solucion)
 
 def probar_k_geometric():
+    reset_times()
+    tracemalloc.start()
+
     estado_inicial = ESTADO_INICIAL
 
     condiciones = CONDICIONES
@@ -528,6 +534,32 @@ def probar_k_geometric():
         mecanismo=mecanismo,
         tpm=tpm,
         k=K
+    )
+
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    peak_ram_mb = peak / 1024 / 1024
+
+    if hasattr(estrategia, "partition_evaluator") and estrategia.partition_evaluator:
+        cache_perf = estrategia.partition_evaluator.get_cache_performance()
+        hits = cache_perf["hits"]
+        misses = cache_perf["misses"]
+        porc = cache_perf["porcentaje"]
+    else:
+        hits, misses, porc = 0, 0, 0.0
+
+    n_size = len(estado_inicial)
+    total_time = getattr(solucion, "tiempo_total", getattr(solucion, "tiempo_ejecucion", 0.0))
+
+    generar_graficos(
+        n_size=n_size,
+        k_size=K,
+        total_time=total_time,
+        peak_ram_mb=peak_ram_mb,
+        hits=hits,
+        misses=misses,
+        cache_porcentaje=porc,
+        function_times=function_times
     )
 
     print("\n===== RESULTADO =====")

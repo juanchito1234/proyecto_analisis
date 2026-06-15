@@ -4,6 +4,7 @@ import numpy as np
 from src.middlewares.slogger import SafeLogger
 from src.funcs.base import emd_efecto, ABECEDARY
 from src.middlewares.profile import profiler_manager, profile
+from src.middlewares.tracker import track_time
 from src.funcs.format import fmt_biparte_q
 from src.controllers.manager import Manager
 from src.models.base.sia import SIA
@@ -278,6 +279,7 @@ class QNodes(SIA):
             self.memoria_particiones, key=lambda k: self.memoria_particiones[k][0]
         )
 
+    @track_time("funcion_submodular")
     def funcion_submodular(
         self, deltas: Union[tuple, list[tuple]], omegas: list[Union[tuple, list[tuple]]]
     ):

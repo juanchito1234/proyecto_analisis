@@ -12,6 +12,7 @@ from src.models.enums.notation import Notation
 
 from src.models.base.application import aplicacion
 from src.constants.base import ABC_START, INT_ZERO
+from src.middlewares.tracker import track_time
 
 
 # @cache
@@ -45,6 +46,7 @@ def seleccionar_metrica(distancia_usada: str):
     return distancias_metricas[distancia_usada]
 
 
+@track_time("emd_efecto")
 def emd_efecto(u: NDArray[np.float32], v: NDArray[np.float32]) -> float:
     """
     Solución analítica de la Earth Mover's Distance basada en variables independientes condicionalmente.
