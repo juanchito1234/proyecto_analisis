@@ -84,8 +84,8 @@ from pathlib import Path
 METHOD2_ROOT = Path(__file__).resolve().parents[1]
 GEOMIP_ROOT = Path(__file__).resolve().parents[3]
 
-K = 2
-N = 24
+K = 3
+N = 25
 VERSION = "A"
 TPM_FILE = f"N{N}{VERSION}.csv"
 ESTADO_INICIAL = "1" + ("0" * (N - 1))
@@ -505,7 +505,7 @@ def probar_k_geometric():
         tpm_path,
         delimiter=",",
         header=None,
-        dtype=np.int8
+        dtype=np.float64
     ).values
 
     print("Creando gestor...")

@@ -54,6 +54,38 @@ def proyectar_vertice(coords, n_dims):
                 base = base * (1.0 + factor)
         return base
 
+def construir_centroides_voronoi(k):
+    """
+    Genera centroides distribuidos uniformemente
+    sobre un círculo para representar los bloques.
+    """
+    centroides = []
+
+    for i in range(k):
+        angulo = 2 * np.pi * i / max(k, 1)
+
+        centroides.append(
+            np.array([
+                np.cos(angulo),
+                np.sin(angulo),
+                0.0
+            ])
+        )
+
+    return centroides
+
+
+def asignar_region_voronoi(punto, centroides):
+    """
+    Retorna el índice del centroide más cercano.
+    """
+
+    distancias = [
+        np.linalg.norm(punto - centro)
+        for centro in centroides
+    ]
+
+    return int(np.argmin(distancias))
 
 def generar_visualizacion_hipercubo(partition, dims_ncubos, ruta_salida="results/k_partition_hypercube.png"):
     """
@@ -130,6 +162,69 @@ def generar_visualizacion_hipercubo(partition, dims_ncubos, ruta_salida="results
                 pos.append(0.0)
             posiciones[c] = np.array(pos)
 
+        centroides = construir_centroides_voronoi(k)
+
+        if n_plot == 2:
+            centroides_voronoi = [
+                c[:2]
+                for c in centroides
+            ]
+        elif n_plot >= 3:
+            centroides_voronoi = centroides
+        else:
+            centroides_voronoi = None
+
+        if centroides_voronoi is not None:
+            nube = np.random.uniform(
+                -1.2,
+                1.2,
+                size=(5000, len(centroides_voronoi[0]))
+            )
+
+            regiones = np.array([
+                asignar_region_voronoi(
+                    punto,
+                    centroides_voronoi
+                )
+                for punto in nube
+            ])
+
+            for region in range(k):
+
+                puntos_region = nube[
+                    regiones == region
+                ]
+
+                if len(puntos_region) == 0:
+                    continue
+
+                color_region = colores_premium[
+                    region % len(colores_premium)
+                ]
+
+                if n_plot >= 3:
+
+                    ax.scatter(
+                        puntos_region[:,0],
+                        puntos_region[:,1],
+                        puntos_region[:,2],
+                        color=color_region,
+                        alpha=0.03,
+                        s=4,
+                        zorder=0
+                    )
+
+                else:
+
+                    ax.scatter(
+                        puntos_region[:,0],
+                        puntos_region[:,1],
+                        color=color_region,
+                        alpha=0.03,
+                        s=4,
+                        zorder=0
+                    )
+
         # Dibujar aristas
         aristas_dibujadas = set()
         labels_agregadas = set()
@@ -149,7 +244,9 @@ def generar_visualizacion_hipercubo(partition, dims_ncubos, ruta_salida="results
                         p1 = posiciones[c1]
                         p2 = posiciones[c2]
                         
-                        color_arista = colores_premium[block_idx % len(colores_premium)]
+                        color_arista = colores_premium[
+                            block_idx % len(colores_premium)
+                        ]                        
                         label_bloque = f"Bloque {block_idx}"
                         
                         # Evitar duplicar leyendas
@@ -171,59 +268,44 @@ def generar_visualizacion_hipercubo(partition, dims_ncubos, ruta_salida="results
         # Dibujar vértices
         for c, pos in posiciones.items():
             lbl = "".join(map(str, c))
+            
+            # Determinar región de Voronoi para este vértice según su posición proyectada
+            if centroides_voronoi is not None:
+                pos_proj = pos[:len(centroides_voronoi[0])]
+                bloque_vertice = asignar_region_voronoi(pos_proj, centroides_voronoi)
+            else:
+                bloque_vertice = 0
+                
+            color_vertice = colores_premium[bloque_vertice % len(colores_premium)]
+
             if n_plot >= 3:
-                ax.scatter(pos[0], pos[1], pos[2], color="#212529", s=60, zorder=10)
+                ax.scatter(pos[0], pos[1], pos[2], color=color_vertice, s=60, zorder=10)
                 ax.text(pos[0], pos[1], pos[2] + 0.1, lbl, fontsize=9, color="#1C7ED6", weight='bold', ha='center', zorder=15)
             else:
-                ax.scatter(pos[0], pos[1], color="#212529", s=60, zorder=10)
+                ax.scatter(pos[0], pos[1], color=color_vertice, s=60, zorder=10)
                 ax.text(pos[0], pos[1] + 0.1, lbl, fontsize=9, color="#1C7ED6", weight='bold', ha='center', zorder=15)
 
-        # Dibujar hiperplanos divisores en el subespacio (k-1 cortes)
-        # Si un eje pertenece a un bloque diferente, ponemos un plano/línea en su coordenada 0 (proyectada de 0.5)
-        bloques_vistos = set()
-        planos_dibujados = 0
-
-        for i in range(n_plot):
-            dim_fisica = ejes_seleccionados[i]
-            abs_node = dims_ncubos[dim_fisica]
-            block_idx = node_to_block.get(abs_node, 0)
-            
-            # Dibujamos corte si hay múltiples bloques y no hemos dibujado para este bloque aún (dejamos el último sin corte)
-            if k > 1 and block_idx not in bloques_vistos and len(bloques_vistos) < k - 1:
-                bloques_vistos.add(block_idx)
-                color_plano = colores_premium[block_idx % len(colores_premium)]
+        # Dibujar las fronteras exactas de Voronoi (hiperplanos divisores)
+        if k > 1:
+            for i in range(k):
+                # Ángulo de la frontera entre el centroide i e i+1
+                angulo_frontera = 2 * np.pi * (i + 0.5) / k
+                cos_f = np.cos(angulo_frontera)
+                sin_f = np.sin(angulo_frontera)
+                
+                color_linea = "#495057" # Gris oscuro para las fronteras
                 
                 if n_plot >= 3:
-                    lim = 1.2
-                    if i == 0:  # X = 0 es el plano divisor
-                        y = np.linspace(-lim, lim, 10)
-                        z = np.linspace(-lim, lim, 10)
-                        Y, Z = np.meshgrid(y, z)
-                        X = np.zeros_like(Y)
-                        ax.plot_surface(X, Y, Z, color=color_plano, alpha=0.15, shade=False, zorder=1)
-                        planos_dibujados += 1
-                    elif i == 1:  # Y = 0
-                        x = np.linspace(-lim, lim, 10)
-                        z = np.linspace(-lim, lim, 10)
-                        X, Z = np.meshgrid(x, z)
-                        Y = np.zeros_like(X)
-                        ax.plot_surface(X, Y, Z, color=color_plano, alpha=0.15, shade=False, zorder=1)
-                        planos_dibujados += 1
-                    elif i == 2:  # Z = 0
-                        x = np.linspace(-lim, lim, 10)
-                        y = np.linspace(-lim, lim, 10)
-                        X, Y = np.meshgrid(x, y)
-                        Z = np.zeros_like(X)
-                        ax.plot_surface(X, Y, Z, color=color_plano, alpha=0.15, shade=False, zorder=1)
-                        planos_dibujados += 1
+                    # En 3D, las fronteras son planos verticales a lo largo del eje Z
+                    r_vals = np.linspace(0, 1.5, 5)
+                    z_vals = np.linspace(-1.5, 1.5, 5)
+                    R, Z = np.meshgrid(r_vals, z_vals)
+                    X = R * cos_f
+                    Y = R * sin_f
+                    ax.plot_surface(X, Y, Z, color=color_linea, alpha=0.15, shade=False, zorder=2)
                 else:
-                    # Caso 2D
-                    if i == 0:
-                        ax.axvline(0, color=color_plano, linestyle="--", linewidth=2, alpha=0.7, label=f"Corte Bloque {block_idx}")
-                        planos_dibujados += 1
-                    elif i == 1:
-                        ax.axhline(0, color=color_plano, linestyle="--", linewidth=2, alpha=0.7, label=f"Corte Bloque {block_idx}")
-                        planos_dibujados += 1
+                    # En 2D, las fronteras son líneas (rayos desde el origen)
+                    ax.plot([0, 1.5 * cos_f], [0, 1.5 * sin_f], color=color_linea, linestyle="--", linewidth=1.5, alpha=0.6, zorder=2)
 
         # Nombres de variables para los ejes
         def nombre_eje(dim_local):

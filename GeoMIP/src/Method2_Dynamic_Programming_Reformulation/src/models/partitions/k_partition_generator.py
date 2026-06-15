@@ -115,6 +115,8 @@ class KPartitionGenerator:
                 firmas.add(firma)
                 candidatos.append(copy.deepcopy(bloques))
 
+        node_to_local_idx = {node_abs: idx for idx, node_abs in enumerate(abs_p)}
+
         def asignar_mecanismos_a_efectos(particion_efectos):
             """
             Dada una partición de efectos {E1, ..., Ek}, asigna cada mecanismo
@@ -135,6 +137,39 @@ class KPartitionGenerator:
                         mejor_bloque = i
                 bloques[mejor_bloque].add((ACTUAL, p_id))
             
+            registrar_particion(bloques)
+
+        def asignar_mecanismos_geometrica(e_seed, p_rest, estado):
+            """
+            Asigna presentes basándose en el estado de Hamming de la semilla:
+            - Si el presente NO cambió (coincide con estado_base), va al bloque de e_seed (bloque 0).
+            - Si cambió, se asigna al bloque de p_rest con mayor conectividad.
+            """
+            bloques = [set() for _ in range(k)]
+            # Inicializar efectos
+            for eid in e_seed:
+                bloques[0].add((EFECTO, eid))
+            for i, e_set in enumerate(p_rest):
+                for eid in e_set:
+                    bloques[i + 1].add((EFECTO, eid))
+                    
+            # Asignar presentes
+            for p_id in abs_p:
+                local_idx = node_to_local_idx[p_id]
+                if estado[local_idx] == estado_base[local_idx]:
+                    bloques[0].add((ACTUAL, p_id))
+                else:
+                    if k > 2:
+                        mejor_bloque_restante = 0
+                        max_infl = -1.0
+                        for i, e_set in enumerate(p_rest):
+                            infl_total = sum(self.conectividad.get((p_id, eid), 0.0) for eid in e_set)
+                            if infl_total > max_infl:
+                                max_infl = infl_total
+                                mejor_bloque_restante = i
+                        bloques[mejor_bloque_restante + 1].add((ACTUAL, p_id))
+                    else:
+                        bloques[1].add((ACTUAL, p_id))
             registrar_particion(bloques)
 
         def generar_particiones_efectos(elementos, sub_k):
@@ -209,9 +244,14 @@ class KPartitionGenerator:
                         rest_e,
                         k - 1
                     ):
-
+                        # Generar candidatos con ambas heurísticas
                         asignar_mecanismos_a_efectos(
                             [e_seed] + p_rest
+                        )
+                        asignar_mecanismos_geometrica(
+                            e_seed,
+                            p_rest,
+                            estado
                         )
 
                         contador_semilla += 1
@@ -240,7 +280,17 @@ class KPartitionGenerator:
             reverse=True
         )
 
-        candidatos = candidatos[:300]
+        # Truncar dinámicamente según el tamaño del sistema para mantener el tiempo acotado
+        if len(abs_f) > 20:
+            limite_candidatos = 10
+        elif len(abs_f) > 15:
+            limite_candidatos = 25
+        elif len(abs_f) > 10:
+            limite_candidatos = 100
+        else:
+            limite_candidatos = 300
+
+        candidatos = candidatos[:limite_candidatos]
         return candidatos
 
     def valid_partition(self, particion):
@@ -256,31 +306,12 @@ class KPartitionGenerator:
             if not tiene_efecto: return False
         return efectos_cubiertos == set(self.sia_subsistema.indices_ncubos.tolist())
     
-    def score_particion(
-        self,
-        particion
-    ):
-        score = 0
-
+    def score_particion(self, particion):
+        score = 0.0
         for bloque in particion:
-
-            efectos = [
-                n
-                for t, n in bloque
-                if t == EFECTO
-            ]
-
-            for i in efectos:
-                for j in efectos:
-
-                    if i == j:
-                        continue
-
-                    score += (
-                        self.conectividad.get(
-                            (i, j),
-                            0
-                        )
-                    )
-
+            mecanismos = [n for t, n in bloque if t == ACTUAL]
+            efectos = [n for t, n in bloque if t == EFECTO]
+            for p in mecanismos:
+                for e in efectos:
+                    score += self.conectividad.get((p, e), 0.0)
         return score

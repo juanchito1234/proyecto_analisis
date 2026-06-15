@@ -197,7 +197,11 @@ class TransitionGeometry:
             self.estado_inicial
         )
 
-        for nivel in range(1, total_bits + 1):
+        # Limitar el nivel máximo de exploración de Hamming en sistemas grandes
+        # para evitar la explosión combinatoria (ej. 25-bits generaría millones de estados intermedios)
+        max_nivel = min(total_bits, 3) if total_bits > 10 else total_bits
+
+        for nivel in range(1, max_nivel + 1):
             t_nivel = time.time()
 
             self.calcular_costos_nivel(
