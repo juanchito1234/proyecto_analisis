@@ -196,8 +196,6 @@ class TransitionGeometry:
         total_bits = len(
             self.estado_inicial
         )
-        print("Estado inicial:", time.time() - t0)
-
 
         for nivel in range(1, total_bits + 1):
             t_nivel = time.time()
@@ -206,16 +204,6 @@ class TransitionGeometry:
                 self.estado_final,
                 nivel
             )
-
-            print(
-                f"Nivel {nivel}:",
-                time.time() - t_nivel
-            )
-
-        print(
-            "Costos calculados:",
-            self.num_costos_calculados
-        )
 
     def calcular_costos_nivel(
         self,

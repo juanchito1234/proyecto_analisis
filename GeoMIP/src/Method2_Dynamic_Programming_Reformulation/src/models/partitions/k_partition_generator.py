@@ -241,16 +241,6 @@ class KPartitionGenerator:
         )
 
         candidatos = candidatos[:300]
-
-        print(
-            "Consultas realizadas:",
-            self.num_consultas
-        )
-
-        print(
-            "Estados únicos usados:",
-            len(self.estados_usados)
-        )
         return candidatos
 
     def valid_partition(self, particion):

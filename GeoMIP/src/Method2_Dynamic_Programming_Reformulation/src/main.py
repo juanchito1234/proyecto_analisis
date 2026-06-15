@@ -85,7 +85,7 @@ METHOD2_ROOT = Path(__file__).resolve().parents[1]
 GEOMIP_ROOT = Path(__file__).resolve().parents[3]
 
 K = 2
-N = 10
+N = 25
 VERSION = "A"
 TPM_FILE = f"N{N}{VERSION}.csv"
 ESTADO_INICIAL = "1" + ("0" * (N - 1))
@@ -329,7 +329,6 @@ def ejecutar_desde_excel(
 
         alcance = convertir_a_binario(partes[0][:len(partes[0]) - 3], n_bits=len(estado_inicio))
         mecanismo = convertir_a_binario(partes[1][:len(partes[1]) - 1], n_bits=len(estado_inicio))
-        print(f"Iteración {i} - Alcance: {alcance}, Mecanismo: {mecanismo}")
 
         config_sistema = Manager(estado_inicial=estado_inicio)
 
@@ -340,7 +339,6 @@ def ejecutar_desde_excel(
         proceso.join(timeout=3600)  
 
         if proceso.is_alive():
-            print(f"Iteración {i} - Tiempo límite alcanzado, terminando proceso...")
             proceso.terminate()
             proceso.join()
             resultado = {"perdida": None, "tiempo": None, "particion": None}
@@ -417,8 +415,6 @@ def probar_geometric():
         gestor
     )
 
-    print("Aplicando estrategia...")
-
     solucion = estrategia.aplicar_estrategia(
         condiciones,
         alcance,
@@ -442,9 +438,6 @@ def probar_geometric():
     print(solucion)
 
 def probar_k_geometric():
-
-    print("\n===== K-GEOMETRIC =====\n")
-
     estado_inicial = ESTADO_INICIAL
 
     condiciones = CONDICIONES
