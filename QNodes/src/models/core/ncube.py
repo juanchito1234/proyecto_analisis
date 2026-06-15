@@ -14,8 +14,8 @@ class NCube:
 
     indice: int
     dims: NDArray[np.int8]
-    data: np.ndarray
-    memo: dict[tuple[tuple[int, int], ...], np.ndarray] = field(default_factory=dict)
+    data: np.ndarray  # Debe ser float32
+    memo: dict = field(default_factory=dict)
 
     def __post_init__(self):
         """Validación de tamaño y dimensionalidad tras inicialización.
@@ -125,8 +125,13 @@ class NCube:
 
             Se han agrupado los valores del n-cubo por promedio, dejando los remanentes en la dimension 0.
         """
-        if tuple(ejes) not in self.memo:
-            marginable_axis = np.intersect1d(ejes, self.dims)
+        ejes_tuple = tuple(ejes)
+        if len(self.memo) > 1024:
+            self.memo.clear()
+            
+        if ejes_tuple not in self.memo:
+            # Usar comprensión de listas en vez de np.intersect1d
+            marginable_axis = np.array([dim for dim in self.dims if dim in ejes], dtype=np.int8)
             if not marginable_axis.size:
                 return self
             numero_dims = self.dims.size - 1
@@ -139,13 +144,14 @@ class NCube:
                 [d for d in self.dims if d not in marginable_axis],
                 dtype=np.int8,
             )
-            self.memo[tuple(ejes)] = (
-                np.mean(self.data, axis=ejes_locales, keepdims=False),
+            # Asegurar casteo y evitar re-alocación enorme si mean crea float64 temporal
+            self.memo[ejes_tuple] = (
+                np.mean(self.data, axis=ejes_locales, keepdims=False, dtype=np.float32),
                 new_dims,
             )
         return NCube(
-            data=self.memo[tuple(ejes)][0],
-            dims=self.memo[tuple(ejes)][1],
+            data=self.memo[ejes_tuple][0],
+            dims=self.memo[ejes_tuple][1],
             indice=self.indice,
         )
 

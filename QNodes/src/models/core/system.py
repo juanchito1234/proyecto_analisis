@@ -9,6 +9,7 @@ from src.models.core.ncube import NCube
 from src.models.enums.notation import Notation
 
 
+
 class System:
     """
     La clase sistema es la encargada de realizar las operaciones de condicionamiento, substracción para generación de subsistemas y obtención de las distribuciones marginales para realizar eficientemente el cálculo de la EMD en el Efecto.
@@ -32,13 +33,14 @@ class System:
             if isinstance(aplicacion.indexado_llegada, Notation)
             else str(aplicacion.indexado_llegada)
         )
+        tpm_f32 = tpm.astype(np.float32, copy=False)
         self.ncubos = tuple(
             NCube(
                 indice=idx,
                 dims=np.array(range(num_nodos), dtype=np.int8),
-                data=tpm[:, idx].reshape((BASE_TWO,) * num_nodos)
+                data=tpm_f32[:, idx].reshape((BASE_TWO,) * num_nodos)
                 if notacion_llegada == Notation.LIL_ENDIAN.value
-                else tpm[idx, :][reindexar(num_nodos)].reshape((BASE_TWO,) * num_nodos),
+                else tpm_f32[idx, :][reindexar(num_nodos)].reshape((BASE_TWO,) * num_nodos),
             )
             for idx in range(num_nodos)
         )
@@ -138,7 +140,7 @@ class System:
 
         Como se aprecia se hizo reducción en la dimensión más significativa y prevaleció las dimensiones donde C=0 (agrupamiento más externo, primera posición).
         """
-        indices_validos = np.intersect1d(self.indices_ncubos, indices)
+        indices_validos = np.array([idx for idx in self.indices_ncubos if idx in indices], dtype=np.int8)
         if not indices_validos.size:
             return self
         nuevo_sistema = System.__new__(System)
@@ -220,7 +222,7 @@ class System:
         Los indices asociados a los literales o variables independiente al tiempo son `0:(A|a), 1:(B|b), 2:(C|c)`.
         En el ejemplo se aprecia lo que puede representarse como que el sistema `V={A_abc,B_abc,C_abc}` sufrió una martinalización en `A in (t+1)`, dejando `B` y `C`, sobre los que se aplicó luego una marginalización en `c in (t)`.
         """
-        futuros_validos = np.setdiff1d(self.indices_ncubos, alcance_idx)
+        futuros_validos = np.array([idx for idx in self.indices_ncubos if idx not in alcance_idx], dtype=np.int8)
         nuevo_sistema = System.__new__(System)
         nuevo_sistema.estado_inicial = self.estado_inicial
         nuevo_sistema.memo = {}
@@ -250,16 +252,22 @@ class System:
         nuevo_sistema.estado_inicial = self.estado_inicial
         nuevo_sistema.memo = self.memo
 
-        clave = tuple(alcance), tuple(mecanismo)
+        # Calcular bitmask para reducir costo de hash de la clave
+        alcance_mask = sum(1 << int(x) for x in alcance)
+        mecanismo_mask = sum(1 << int(x) for x in mecanismo)
+        clave = (alcance_mask, mecanismo_mask)
+
+        if len(self.memo) > 4096:
+            self.memo.clear()
+
         if clave not in self.memo:
+            # np.setdiff1d es costoso, precalculamos las diferencias usando listas
             self.memo[clave] = tuple(
-                cubo.marginalizar(np.setdiff1d(cubo.dims, mecanismo))
+                cubo.marginalizar(np.array([d for d in cubo.dims if d not in mecanismo], dtype=np.int8))
                 if cubo.indice in alcance
                 else cubo.marginalizar(mecanismo)
                 for cubo in self.ncubos
             )
-        else:
-            self.memo[clave] = self.memo[clave]
 
         nuevo_sistema.ncubos = self.memo[clave]
 
@@ -280,14 +288,24 @@ class System:
         nuevo_sistema.estado_inicial = self.estado_inicial
         nuevo_sistema.memo = self.memo
 
-        clave = tuple((tuple(alc), tuple(mec)) for alc, mec in particiones)
+        # Construir clave compacta usando bitmasks
+        claves_particiones = []
+        for alc, mec in particiones:
+            alc_mask = sum(1 << int(x) for x in alc)
+            mec_mask = sum(1 << int(x) for x in mec)
+            claves_particiones.append((alc_mask, mec_mask))
+        clave = tuple(claves_particiones)
+        
+        if len(self.memo) > 4096:
+            self.memo.clear()
+            
         if clave not in self.memo:
             nuevos_cubos = []
             for cubo in self.ncubos:
                 encontrado = False
                 for alcance, mecanismo in particiones:
                     if cubo.indice in alcance:
-                        nuevos_cubos.append(cubo.marginalizar(np.setdiff1d(cubo.dims, mecanismo)))
+                        nuevos_cubos.append(cubo.marginalizar(np.array([d for d in cubo.dims if d not in mecanismo], dtype=np.int8)))
                         encontrado = True
                         break
                 
@@ -297,8 +315,6 @@ class System:
                     nuevos_cubos.append(cubo)
                     
             self.memo[clave] = tuple(nuevos_cubos)
-        else:
-            self.memo[clave] = self.memo[clave]
 
         nuevo_sistema.ncubos = self.memo[clave]
 
