@@ -3,7 +3,7 @@ from src.strategies.q_nodes import QNodes
 from src.models.base.application import aplicacion
 
 K = 2
-N = 22
+N = 20
 VERSION = "A"
 
 def iniciar():

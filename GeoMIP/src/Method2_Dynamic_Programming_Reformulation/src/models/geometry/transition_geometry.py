@@ -365,7 +365,7 @@ class TransitionGeometry:
             self._flat_data[:, estado_ini_int]
             -
             self._flat_data[:, estado_fin_int]
-        )
+        ).astype(np.float64)
 
         self.tabla_transiciones[key] = diffs
 

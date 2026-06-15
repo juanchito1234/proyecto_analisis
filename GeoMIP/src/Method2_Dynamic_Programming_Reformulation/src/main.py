@@ -85,7 +85,7 @@ METHOD2_ROOT = Path(__file__).resolve().parents[1]
 GEOMIP_ROOT = Path(__file__).resolve().parents[3]
 
 K = 2
-N = 25
+N = 24
 VERSION = "A"
 TPM_FILE = f"N{N}{VERSION}.csv"
 ESTADO_INICIAL = "1" + ("0" * (N - 1))
@@ -320,7 +320,8 @@ def ejecutar_desde_excel(
         estado_inicio,
         archivo_tpm=TPM_FILE
     )
-    tpm = np.genfromtxt(tpm_path, delimiter=",")
+    import pandas as pd
+    tpm = pd.read_csv(tpm_path, delimiter=",", header=None, dtype=np.int8).values
 
     for i, fila in enumerate(filas, start=inicio + 1):
         partes = fila.split("|")
@@ -398,10 +399,13 @@ def probar_geometric():
 
     print("\nLeyendo TPM...")
 
-    tpm = np.genfromtxt(
+    import pandas as pd
+    tpm = pd.read_csv(
         tpm_path,
-        delimiter=","
-    )
+        delimiter=",",
+        header=None,
+        dtype=np.int8
+    ).values
 
     print("Creando gestor...")
 
@@ -456,10 +460,13 @@ def probar_k_geometric():
 
     print("\nLeyendo TPM...")
 
-    tpm = np.genfromtxt(
+    import pandas as pd
+    tpm = pd.read_csv(
         tpm_path,
-        delimiter=","
-    )
+        delimiter=",",
+        header=None,
+        dtype=np.int8
+    ).values
 
     print("Creando gestor...")
 

@@ -54,7 +54,8 @@ class Manager:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def cargar_red(self) -> np.ndarray:
-        dataset = np.genfromtxt(self.tpm_filename, delimiter=COLON_DELIM)
+        import pandas as pd
+        dataset = pd.read_csv(self.tpm_filename, header=None, delimiter=COLON_DELIM, dtype=np.int8).values
         return dataset
 
     def generar_red(self, dimensiones: int, datos_deterministas: bool = True) -> str:
