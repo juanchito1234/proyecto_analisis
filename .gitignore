@@ -57,9 +57,8 @@ build/
 .log
 
 # Archivos grandes generados (TPMs de escalabilidad)
-N16*.csv
-N18*.csv
-N2*.csv
 N21*.csv
+N22*.csv
 N23*.csv
 N24*.csv
+N25*.csv
