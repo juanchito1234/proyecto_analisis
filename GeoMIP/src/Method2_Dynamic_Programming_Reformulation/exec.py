@@ -1,5 +1,5 @@
 from src.models.base.application import aplicacion
-from src.main import ( iniciar, probar_geometric, probar_k_geometric )
+from src.main import ( iniciar, iniciar_k_geometric, probar_geometric, probar_k_geometric )
 
 
 def main():
@@ -9,9 +9,8 @@ def main():
     # aplicacion.pagina_sample_network = "B"
 
     # pruebitas de las particiones k-geométricas jijijija
+    # probar_geometric()
     probar_k_geometric()
-
-    #iniciar()
 
 
 if __name__ == "__main__":

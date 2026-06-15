@@ -308,6 +308,7 @@ def ejecutar_desde_excel(
     cantidad=50,
     estado_inicio: str | None = None,
     condiciones: str | None = None,
+    k: int | None = None,
 ):
     df = pd.read_excel(ruta_excel, sheet_name=8, usecols="B", skiprows=3, names=["Subsistema"]) #! here
     filas = df["Subsistema"].dropna().tolist()
@@ -334,7 +335,31 @@ def ejecutar_desde_excel(
         config_sistema = Manager(estado_inicial=estado_inicio)
 
         resultado_queue = multiprocessing.Queue()
-        proceso = multiprocessing.Process(target=ejecutar_con_tiempo, args=(config_sistema, condiciones, alcance, mecanismo, resultado_queue, tpm))
+        if k is not None:
+            proceso = multiprocessing.Process(
+                target=ejecutar_k_geometric,
+                args=(
+                    config_sistema,
+                    condiciones,
+                    alcance,
+                    mecanismo,
+                    resultado_queue,
+                    tpm,
+                    k
+                )
+            )
+        else:
+            proceso = multiprocessing.Process(
+                target=ejecutar_con_tiempo,
+                args=(
+                    config_sistema,
+                    condiciones,
+                    alcance,
+                    mecanismo,
+                    resultado_queue,
+                    tpm
+                )
+            )
         
         proceso.start()
         proceso.join(timeout=3600)  
@@ -377,6 +402,21 @@ def iniciar():
         )
     )
     ejecutar_desde_excel(ruta_entrada, ruta_salida)
+
+def iniciar_k_geometric():
+    ruta_entrada = Path(
+        os.getenv(
+            "GEOMIP_INPUT_XLSX",
+            str(GEOMIP_ROOT / "results" / "Pruebas_Metodo2.xlsx"),
+        )
+    )
+    ruta_salida = Path(
+        os.getenv(
+            "GEOMIP_OUTPUT_XLSX",
+            str(GEOMIP_ROOT / "results" / f"resultados_K_Geometric_k{K}.xlsx"),
+        )
+    )
+    ejecutar_desde_excel(ruta_entrada, ruta_salida, k=K)
 
 def probar_geometric():
     print("\n===== GEOMETRIC =====\n")

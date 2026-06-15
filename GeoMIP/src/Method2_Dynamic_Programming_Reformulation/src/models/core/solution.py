@@ -8,6 +8,7 @@ from typing import Optional
 
 from src.constants.base import FLOAT_ZERO
 from src.models.base.application import aplicacion
+from src.models.geometry.visualization import generar_visualizacion_hipercubo, generar_ascii_hipercubo
 
 # Iniciar colorama
 init()
@@ -103,6 +104,8 @@ class Solution:
         tiempo_total: float = FLOAT_ZERO,
         hablar: bool = True,
         voz: Optional[str] = None,
+        raw_particion: Optional[list] = None,
+        dims_ncubos: Optional[np.ndarray] = None,
     ) -> None:
         """
         Inicializa una nueva instancia de Solution.
@@ -116,6 +119,8 @@ class Solution:
         self.tiempo_ejecucion = tiempo_total
         self.id_voz = voz
         self.hablar = hablar
+        self.raw_particion = raw_particion
+        self.dims_ncubos = dims_ncubos
 
     def __obtener_voz_espanol(self, motor: Engine) -> Optional[str]:
         """
@@ -254,6 +259,14 @@ class Solution:
             f"{self.tiempo_ejecucion/60:.1f}",
             f"{self.tiempo_ejecucion:.4f}",
         )
+
+        visualizacion_info = ""
+        ascii_hipercubo = ""
+        if self.raw_particion is not None and self.dims_ncubos is not None:
+            res_vis = generar_visualizacion_hipercubo(self.raw_particion, self.dims_ncubos)
+            visualizacion_info = f"\n{Fore.CYAN}{res_vis}{Style.RESET_ALL}\n"
+            ascii_hipercubo = f"\n{Fore.LIGHTYELLOW_EX}{generar_ascii_hipercubo(self.raw_particion, self.dims_ncubos)}{Style.RESET_ALL}\n"
+
         return f"""{Fore.CYAN}{bilinea}
 
 {Fore.RED}{self.estrategia} fue la estrategia de solucion.
@@ -271,7 +284,7 @@ class Solution:
 {Fore.YELLOW}Mejor Partición Encontrada:
 {Fore.MAGENTA}{self.particion}
 {Fore.GREEN}Perdida mínima ( φ ) = {self.perdida:.4f}
-
+{visualizacion_info}{ascii_hipercubo}
 {Fore.BLUE}Tiempos de ejecución:
 {Fore.WHITE}Horas: {tiempo_h} = Minutos: {tiempo_m} = Segundos: {tiempo_s}
 
