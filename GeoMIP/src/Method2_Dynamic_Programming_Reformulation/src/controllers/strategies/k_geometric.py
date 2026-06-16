@@ -393,12 +393,35 @@ class KGeometric(SIA):
 
         inicio = time.time()
 
-        candidatos = (
-            self.partition_generator
-            .identificar_particiones_candidatas(
-                k
-            )
+        """
+        Para N pequeño (≤ 10), se usa búsqueda
+        exhaustiva para garantizar la partición
+        óptima. Si el espacio es demasiado grande,
+        se recurre a la heurística geométrica.
+        """
+
+        n_futuros = len(
+            self.sia_subsistema
+            .indices_ncubos
         )
+
+        candidatos = None
+
+        if n_futuros <= 10:
+            candidatos = (
+                self.partition_generator
+                .generar_particiones_exhaustivas(
+                    k
+                )
+            )
+
+        if candidatos is None:
+            candidatos = (
+                self.partition_generator
+                .identificar_particiones_candidatas(
+                    k
+                )
+            )
 
 
 

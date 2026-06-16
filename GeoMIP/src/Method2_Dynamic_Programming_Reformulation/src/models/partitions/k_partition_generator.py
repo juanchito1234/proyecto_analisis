@@ -319,3 +319,95 @@ class KPartitionGenerator:
                 for e in efectos:
                     score += self.conectividad.get((p, e), 0.0)
         return score
+
+    @track_time("Generar Candidatos")
+    def generar_particiones_exhaustivas(self, k, max_candidatos=500000):
+        """
+        Genera TODAS las k-particiones válidas
+        del conjunto de vértices mediante
+        restricted growth strings.
+
+        Cada bloque debe contener al menos
+        un nodo futuro (EFECTO) y un nodo
+        presente (ACTUAL).
+
+        Parameters
+        ----------
+        k : int
+            Número de bloques.
+
+        max_candidatos : int
+            Límite de seguridad. Si se excede,
+            retorna None para señalar que se
+            debe usar la heurística.
+
+        Returns
+        -------
+        list or None
+            Lista de particiones candidatas,
+            o None si se excedió el límite.
+        """
+
+        futuros = [
+            (EFECTO, idx)
+            for idx in self.sia_subsistema.indices_ncubos
+        ]
+
+        presentes = [
+            (ACTUAL, idx)
+            for idx in self.sia_subsistema.dims_ncubos
+        ]
+
+        vertices = futuros + presentes
+        n = len(vertices)
+
+        candidatos = []
+        self._exhaustive_aborted = False
+
+        def _generate(idx, assignment, max_label):
+            if self._exhaustive_aborted:
+                return
+
+            if idx == n:
+                if max_label == k - 1:
+                    blocks = [
+                        set() for _ in range(k)
+                    ]
+
+                    for i, g in enumerate(assignment):
+                        blocks[g].add(vertices[i])
+
+                    valid = all(
+                        any(
+                            t == EFECTO
+                            for t, _ in b
+                        )
+                        for b in blocks
+                    )
+
+                    if valid:
+                        if len(candidatos) >= max_candidatos:
+                            self._exhaustive_aborted = True
+                            return
+
+                        candidatos.append(blocks)
+
+                return
+
+            for g in range(
+                min(max_label + 2, k)
+            ):
+                assignment.append(g)
+                _generate(
+                    idx + 1,
+                    assignment,
+                    max(max_label, g)
+                )
+                assignment.pop()
+
+        _generate(0, [], -1)
+
+        if self._exhaustive_aborted:
+            return None
+
+        return candidatos
