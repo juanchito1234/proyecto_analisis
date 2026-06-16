@@ -223,6 +223,48 @@ uv run exec.py
 
 ---
 
+## Generación de Matrices TPM $2^N \times N$ para Escalabilidad
+
+El repositorio incluye un script centralizado (`generador_escalabilidad.py`) en la raíz del proyecto para crear matrices de probabilidad de transición (TPM) de tamaño $2^N \times N$ para cualquier tamaño de red $N$. 
+
+Este generador guarda los archivos `.csv` automáticamente en las carpetas de muestras de ambos subproyectos (`QNodes/src/.samples/` y `GeoMIP/data/samples/`), utilizando nombres estructurados que los cargadores automáticos del sistema reconocen de manera nativa (ej: `N16A.csv`).
+
+### Ejecución del Generador
+
+Para ejecutar el generador desde la raíz del proyecto, puedes utilizar `uv` directamente indicando el número de nodos y una versión identificadora:
+
+```bash
+# Generar una matriz de 16 nodos (2^16 x 16 estados) con versión 'A' (por defecto)
+uv run generador_escalabilidad.py --nodos 16 --version A
+
+# Generar una matriz de 20 nodos (2^20 x 20 estados) con versión 'B'
+uv run generador_escalabilidad.py --nodos 20 --version B
+```
+
+El script imprimirá las dimensiones, la memoria RAM estimada y confirmará la creación exitosa del archivo delimitado por comas (`,`) en ambas rutas correspondientes.
+
+### Cómo Configurar el Proyecto para Usar la Nueva Matriz
+
+Una vez generada la matriz:
+
+#### En QNodes (`QNodes/src/main.py` o `QNodes/exec.py`):
+Modifica las variables de configuración en la parte superior del archivo:
+```python
+N = 16  # El número de nodos generado
+VERSION = "A"  # El identificador de versión que usaste
+TPM_FILE = f"N{N}{VERSION}.csv"
+```
+
+#### En GeoMIP (`GeoMIP/src/Method2_Dynamic_Programming_Reformulation/src/main.py`):
+Modifica las variables en la sección de configuración global:
+```python
+N = 16  # El número de nodos generado
+VERSION = "A"  # El identificador de versión que usaste
+TPM_FILE = f"N{N}{VERSION}.csv"
+```
+
+---
+
 # Pruebas Unitarias y Cobertura (Testing Suite)
 
 Esta sección está destinada a estudiantes y evaluadores académicos que requieran validar matemáticamente el correcto funcionamiento de las extensiones de `K-Particiones` para `GeoMIP` y `QNodes`.
