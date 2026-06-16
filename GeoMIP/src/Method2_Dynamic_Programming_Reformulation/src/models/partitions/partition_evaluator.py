@@ -1,5 +1,7 @@
 import numpy as np
 
+from functools import lru_cache
+from src.middlewares.tracker import track_time
 from src.funcs.base import emd_efecto
 
 
@@ -85,6 +87,7 @@ class PartitionEvaluator:
         self.cache_hits = 0
         self.cache_misses = 0
 
+    @track_time("Evaluar Particiones")
     def evaluate_partition(
         self,
         partition,

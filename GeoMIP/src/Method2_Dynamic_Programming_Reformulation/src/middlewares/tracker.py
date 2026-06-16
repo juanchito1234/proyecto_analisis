@@ -3,11 +3,10 @@ from functools import wraps
 
 # Registro global de tiempo acumulado
 function_times = {
-    "marginalizar": 0.0,
-    "funcion_submodular": 0.0,
-    "bipartir": 0.0,
-    "distribucion": 0.0,
-    "emd_efecto": 0.0
+    "Preparar Subsistema": 0.0,
+    "Construir Geometría": 0.0,
+    "Generar Candidatos": 0.0,
+    "Evaluar Particiones": 0.0
 }
 
 def track_time(name):

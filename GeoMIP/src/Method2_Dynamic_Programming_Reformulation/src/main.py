@@ -501,11 +501,6 @@ def probar_k_geometric():
         archivo_tpm=TPM_FILE
     )
 
-    print("TPM usada:")
-    print(tpm_path)
-
-    print("\nLeyendo TPM...")
-
     import pandas as pd
     tpm = pd.read_csv(
         tpm_path,
@@ -514,19 +509,14 @@ def probar_k_geometric():
         dtype=np.float64
     ).values
 
-    print("Creando gestor...")
-
     gestor = Manager(
         estado_inicial
     )
-
-    print("Creando estrategia...")
 
     estrategia = KGeometric(
         gestor
     )
 
-    print("Aplicando estrategia...")
 
     solucion = estrategia.aplicar_estrategia(
         condicion=condiciones,

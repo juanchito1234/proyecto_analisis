@@ -89,7 +89,6 @@ class NCube:
             indice=self.indice,
         )
 
-    @track_time("marginalizar")
     def marginalizar(self, ejes: NDArray[np.int8]) -> "NCube":
         """
         Marginalizar a nivel del n-cubo permite acoplar o colapsar una o más dimensiones manteniendo la probabilidad condicional.

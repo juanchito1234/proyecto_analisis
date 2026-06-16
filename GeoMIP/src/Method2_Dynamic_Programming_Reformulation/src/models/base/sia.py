@@ -4,6 +4,7 @@ import time
 import numpy as np
 import numpy.typing as NDArray
 
+from src.middlewares.tracker import track_time
 from src.constants.models import SIA_PREPARATION_TAG
 from src.middlewares.slogger import SafeLogger
 from src.controllers.manager import Manager
@@ -56,6 +57,7 @@ class SIA(ABC):
             dtype=np.int8
         ).values
 
+    @track_time("Preparar Subsistema")
     def sia_preparar_subsistema(
         self,
         condicion: str,

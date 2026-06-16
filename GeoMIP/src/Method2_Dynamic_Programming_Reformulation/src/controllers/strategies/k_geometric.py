@@ -276,15 +276,7 @@ class KGeometric(SIA):
         inicio = time.time()
 
         self.geometry.build_geometry()
-        print(
-            "Entradas tabla:",
-            len(self.geometry.get_transition_table())
-        )
 
-        print(
-            "Geometria:",
-            time.time() - inicio
-        )
 
         """
         Inicializar generador
@@ -406,15 +398,7 @@ class KGeometric(SIA):
             )
         )
 
-        print(
-            "Generación:",
-            time.time() - inicio
-        )
 
-        print(
-            "Candidatos:",
-            len(candidatos)
-        )
 
         if not candidatos:
 
@@ -463,10 +447,7 @@ class KGeometric(SIA):
 
                 continue
 
-        print(
-            "evaluacion:",
-            time.time() - inicio
-        )
+
 
         if mejor_particion is None:
 
@@ -475,16 +456,7 @@ class KGeometric(SIA):
                 "una k-MIP válida."
             )
 
-        self.logger.critic(
-            f"k-MIP encontrada "
-            f"con pérdida mínima="
-            f"{menor_perdida}"
-        )
 
-        print(
-            "Costos lazy calculados:",
-            self.geometry.num_costos_calculados
-        )
 
         return mejor_particion
 

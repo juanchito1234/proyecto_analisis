@@ -1,5 +1,7 @@
 import numpy as np
 import time
+from typing import Dict, List, Tuple
+from src.middlewares.tracker import track_time
 
 
 class TransitionGeometry:
@@ -170,6 +172,7 @@ class TransitionGeometry:
 
         self.num_costos_calculados = 0
 
+    @track_time("Construir Geometría")
     def build_geometry(self):
         """
         Construye completamente la geometría

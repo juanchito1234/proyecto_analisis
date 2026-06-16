@@ -279,7 +279,6 @@ class QNodes(SIA):
             self.memoria_particiones, key=lambda k: self.memoria_particiones[k][0]
         )
 
-    @track_time("funcion_submodular")
     def funcion_submodular(
         self, deltas: Union[tuple, list[tuple]], omegas: list[Union[tuple, list[tuple]]]
     ):

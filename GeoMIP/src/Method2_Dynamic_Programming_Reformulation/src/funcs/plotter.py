@@ -47,6 +47,12 @@ def generar_graficos(n_size, k_size, total_time, peak_ram_mb, hits, misses, cach
     funciones = list(function_times.keys())
     tiempos = list(function_times.values())
     
+    # Calcular "Otros"
+    suma_tiempos = sum(tiempos)
+    otros = max(0.0, total_time - suma_tiempos)
+    funciones.append("Otros")
+    tiempos.append(otros)
+    
     y_pos = np.arange(len(funciones))
     bars = ax.barh(y_pos, tiempos, align='center', color='skyblue', edgecolor='black')
     

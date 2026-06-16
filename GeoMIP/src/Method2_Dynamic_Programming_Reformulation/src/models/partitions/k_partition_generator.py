@@ -1,6 +1,8 @@
 import numpy as np
 import copy
+from copy import deepcopy
 from itertools import combinations
+from src.middlewares.tracker import track_time
 
 from src.constants.base import (
     ACTUAL,
@@ -100,6 +102,7 @@ class KPartitionGenerator:
                 matrix[(p_id, abs_f_id)] = diff
         return matrix
 
+    @track_time("Generar Candidatos")
     def identificar_particiones_candidatas(self, k: int):
         candidatos = []
         firmas = set()
