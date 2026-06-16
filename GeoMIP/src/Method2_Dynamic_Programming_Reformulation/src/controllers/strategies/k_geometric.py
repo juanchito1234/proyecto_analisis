@@ -182,6 +182,8 @@ class KGeometric(SIA):
                 "k debe ser al menos 2."
             )
 
+        inicio_estrategia = time.time()
+
         """
         Preparar subsistema SIA.
         """
@@ -351,7 +353,7 @@ class KGeometric(SIA):
             tiempo_total=(
                 time.time()
                 -
-                self.sia_tiempo_inicio
+                inicio_estrategia
             ),
             particion=mejor_particion,
             raw_particion=mejor_particion,

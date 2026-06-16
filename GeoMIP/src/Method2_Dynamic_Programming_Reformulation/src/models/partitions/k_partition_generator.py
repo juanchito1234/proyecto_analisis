@@ -59,6 +59,7 @@ class KPartitionGenerator:
     estructuralmente que round-robin.
     """
 
+    @track_time("Inicializar Generador")
     def __init__(
         self,
         sia_subsistema,

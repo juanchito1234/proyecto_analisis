@@ -48,6 +48,7 @@ class PartitionEvaluator:
         )
     """
 
+    @track_time("Inicializar Evaluador")
     def __init__(
         self,
         sia_subsistema,

@@ -4,8 +4,12 @@ from functools import wraps
 # Registro global de tiempo acumulado
 function_times = {
     "Preparar Subsistema": 0.0,
+    "Inicializar Geometría": 0.0,
     "Construir Geometría": 0.0,
+    "Obtener Caminos": 0.0,
+    "Inicializar Generador": 0.0,
     "Generar Candidatos": 0.0,
+    "Inicializar Evaluador": 0.0,
     "Evaluar Particiones": 0.0
 }
 

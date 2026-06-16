@@ -52,6 +52,7 @@ class TransitionGeometry:
         ]
     """
 
+    @track_time("Inicializar Geometría")
     def __init__(
         self,
         sia_subsistema,
@@ -447,6 +448,7 @@ class TransitionGeometry:
 
         return self.tabla_transiciones
 
+    @track_time("Obtener Caminos")
     def get_paths(
         self
     ):
