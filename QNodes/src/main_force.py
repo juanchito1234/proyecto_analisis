@@ -2,7 +2,7 @@ from src.controllers.manager import Manager
 from src.strategies.force import BruteForceK
 from src.models.base.application import aplicacion
 
-N = 8
+N = 15
 VERSION = "A"
 K = 2
 
