@@ -21,6 +21,9 @@ class Application:
     """
 
     def __init__(self) -> None:
+        """
+        Inicializa una nueva instancia de la clase Application con la configuración por defecto.
+        """
         self.semilla_numpy = 73
         self.pagina_red_muestra: str = ABC_START
         self.distancia_metrica: str = MetricDistance.HAMMING.value
@@ -31,35 +34,77 @@ class Application:
         self.profiler_habilitado: bool = True
 
     def set_pagina_red_muestra(self, pagina: str):
+        """
+        Establece la página de la red de muestra a procesar.
+
+        Args:
+            pagina (str): Identificador de la página de red.
+        """
         self.pagina_red_muestra = pagina
 
     def set_notacion(self, tipo: Notation):
+        """
+        Establece la notación de indexado a usar en el sistema.
+
+        Args:
+            tipo (Notation): Tipo de notación (BIG_ENDIAN / LIL_ENDIAN).
+        """
         self.notacion_indexado = tipo.value if isinstance(tipo, Notation) else str(tipo)
 
     def set_distancia(self, tipo: MetricDistance):
+        """
+        Establece la distancia métrica.
+
+        Args:
+            tipo (MetricDistance): La distancia métrica a usar.
+        """
         self.distancia_metrica = (
             tipo.value if isinstance(tipo, MetricDistance) else str(tipo)
         )
 
     def set_estados_activos(self):
+        """
+        Configura el modo de estados para procesar variables activas (ON).
+        """
         self.modo_estados = ACTIVE
 
     def set_estados_inactivos(self):
+        """
+        Configura el modo de estados para procesar variables inactivas (OFF).
+        """
         self.modo_estados = INACTIVE
 
     def set_tiempo_emd(self, tipo: TimeEMD):
+        """
+        Establece la dirección temporal para la Earth Mover's Distance.
+
+        Args:
+            tipo (TimeEMD): EMD_EFECTO para futuro, EMD_CAUSA para pasado.
+        """
         # Normaliza siempre a string para evitar choques Enum vs .value.
         self.tiempo_emd = tipo.value if isinstance(tipo, TimeEMD) else str(tipo)
 
     def set_distancia_metrica(self, tipo: MetricDistance):
+        """
+        Establece la distancia métrica a utilizar.
+
+        Args:
+            tipo (MetricDistance): La distancia métrica a usar.
+        """
         self.distancia_metrica = (
             tipo.value if isinstance(tipo, MetricDistance) else str(tipo)
         )
 
     def activar_profiling(self) -> None:
+        """
+        Habilita el profiling de rendimiento del programa.
+        """
         self.profiler_habilitado = True
 
     def desactivar_profiling(self) -> None:
+        """
+        Deshabilita el profiling de rendimiento del programa.
+        """
         self.profiler_habilitado = False
 
 

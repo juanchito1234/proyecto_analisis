@@ -429,6 +429,21 @@ class TransitionGeometry:
         a,
         b
     ):
+        """
+        Calcula la distancia de Hamming entre dos estados.
+
+        Parameters
+        ----------
+        a : iterable
+            Primer estado.
+        b : iterable
+            Segundo estado.
+
+        Returns
+        -------
+        int
+            Distancia de Hamming.
+        """
         return sum(
             x != y
             for x, y in zip(a, b)
@@ -463,6 +478,19 @@ class TransitionGeometry:
         return self.caminos
     
     def state_to_int(self, estado):
+        """
+        Convierte un estado binario (lista/tupla) a su correspondiente valor entero en Little-Endian.
+
+        Parameters
+        ----------
+        estado : iterable
+            El estado binario a convertir.
+
+        Returns
+        -------
+        int
+            El entero representativo en Little-Endian.
+        """
         key = tuple(estado)
 
         if key not in self._state_to_int:

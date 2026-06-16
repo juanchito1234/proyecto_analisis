@@ -83,6 +83,12 @@ class KPartitionGenerator:
         self.conectividad = self._calcular_conectividad()
 
     def _calcular_conectividad(self):
+        """
+        Pre-calcula la matriz de conectividad o influencia entre variables presentes y futuras.
+
+        Returns:
+            dict: Diccionario mapeando (id_presente, id_futuro) a su coeficiente de influencia.
+        """
         abs_p = self.sia_subsistema.dims_ncubos
         abs_f = self.sia_subsistema.indices_ncubos
         matrix = {}
@@ -298,6 +304,15 @@ class KPartitionGenerator:
         return candidatos
 
     def valid_partition(self, particion):
+        """
+        Valida si una partición candidata contiene al menos un nodo futuro en cada bloque.
+
+        Args:
+            particion (list[set]): Partición a validar.
+
+        Returns:
+            bool: True si la partición es estructuralmente válida, False en caso contrario.
+        """
         if not particion: return False
         efectos_cubiertos = set()
         for bloque in particion:
@@ -311,6 +326,15 @@ class KPartitionGenerator:
         return efectos_cubiertos == set(self.sia_subsistema.indices_ncubos.tolist())
     
     def score_particion(self, particion):
+        """
+        Calcula un puntaje de idoneidad para ordenar las particiones basado en conectividad.
+
+        Args:
+            particion (list[set]): Partición a puntuar.
+
+        Returns:
+            float: Puntaje acumulado de conectividad.
+        """
         score = 0.0
         for bloque in particion:
             mecanismos = [n for t, n in bloque if t == ACTUAL]

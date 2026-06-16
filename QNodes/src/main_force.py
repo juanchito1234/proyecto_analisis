@@ -7,7 +7,9 @@ VERSION = "A"
 K = 2
 
 def iniciar():
-    """Punto de entrada"""
+    """
+    Punto de entrada principal para el análisis utilizando fuerza bruta (BruteForceK).
+    """
 
     estado_inicial = "1" + ("0" * (N - 1))
     condiciones = "1" * N

@@ -45,10 +45,13 @@ def generar_particiones(
     Eficiente para valores grandes de M y N.
 
     Args:
-        m: Tamaño de la primera parte
-        n: Tamaño de la segunda parte
-        square: Si True, retorna matriz 2D. Si False, retorna tuplas
-        as_generator: Si True, usa generador para memoria eficiente
+        m (int): Tamaño de la primera parte (alcance).
+        n (int): Tamaño de la segunda parte (mecanismo).
+        as_matrix (bool): Si es True, retorna los resultados en forma de matriz 2D.
+        as_generator (bool): Si es True, usa generador para memoria eficiente.
+
+    Returns:
+        Generator or list: Generador o lista de tuplas con las particiones binarias.
     """
     # Usar desplazamiento bit a bit para potencias de 2
     if m < 1:
@@ -120,6 +123,17 @@ def biparticiones(
     mecanismos: np.ndarray,
     total=None,
 ):
+    """
+    Genera biparticiones combinando subconjuntos de alcances y mecanismos.
+
+    Args:
+        alcances (np.ndarray): Array de variables futuras (alcances).
+        mecanismos (np.ndarray): Array de variables presentes (mecanismos).
+        total (int | None): Cantidad total aproximada de biparticiones a limitar en la iteración.
+
+    Returns:
+        islice: Un iterador con las biparticiones combinadas (excluyendo la trivial y la vacía).
+    """
     if total is None:
         total = (1 << alcances.size) * (1 << mecanismos.size)
     return islice(
@@ -128,12 +142,28 @@ def biparticiones(
 
 
 def subconjuntos(arr: np.ndarray):
+    """
+    Genera todos los subconjuntos posibles de un array, de todos los tamaños posibles.
+
+    Args:
+        arr (np.ndarray): Array de entrada.
+
+    Returns:
+        chain: Iterador con todos los subconjuntos.
+    """
     return chain.from_iterable(combinations(arr, r) for r in range(len(arr) + 1))
 
 
 def generar_k_particiones(vertices, k):
     """
     Genera exhaustivamente todas las k-particiones posibles de una lista de vértices.
+
+    Args:
+        vertices (list): Lista de vértices a particionar.
+        k (int): Cantidad de bloques de partición deseados.
+
+    Yields:
+        list[list]: Cada partición válida encontrada como lista de bloques.
     """
     if k == 1:
         yield [vertices]

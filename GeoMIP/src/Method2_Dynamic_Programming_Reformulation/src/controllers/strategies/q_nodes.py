@@ -99,6 +99,12 @@ class QNodes(SIA):
     """
 
     def __init__(self, gestor: Manager):
+        """
+        Inicializa la clase QNodes.
+
+        Args:
+            gestor (Manager): Gestor del sistema con la configuración requerida.
+        """
         super().__init__(gestor)
         profiler_manager.start_session(
             f"{NET_LABEL}{len(gestor.estado_inicial)}{gestor.pagina}"
@@ -367,4 +373,13 @@ class QNodes(SIA):
         return emd_union, emd_delta, vector_delta_marginal
 
     def nodes_complement(self, nodes: list[tuple[int, int]]):
+        """
+        Obtiene el complemento de un conjunto de nodos respecto a todos los vértices del sistema.
+
+        Args:
+            nodes (list[tuple[int, int]]): Lista de nodos (tiempo, indice).
+
+        Returns:
+            list[tuple[int, int]]: Lista de nodos complementarios.
+        """
         return list(set(self.vertices) - set(nodes))

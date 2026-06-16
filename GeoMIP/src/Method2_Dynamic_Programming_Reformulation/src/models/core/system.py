@@ -28,6 +28,14 @@ class System:
         estado_inicio: np.ndarray,
         notacion: str = aplicacion.notacion,
     ):
+        """
+        Inicializa una nueva instancia de la clase System.
+
+        Args:
+            tpm (np.ndarray): Matriz de Probabilidad de Transición del sistema.
+            estado_inicio (np.ndarray): Estado inicial del sistema.
+            notacion (str): Notación a utilizar para la indexación de los datos.
+        """
         if estado_inicio.size != (n_nodes := tpm.shape[COLS_IDX]):
             raise ValueError(f"Estado inicial debe tener longitud {n_nodes}")
         self.estado_inicial = estado_inicio
@@ -511,6 +519,12 @@ class System:
         return distribuciones
 
     def __str__(self) -> str:
+        """
+        Retorna una representación en cadena del sistema.
+
+        Returns:
+            str: Detalle de los índices, dimensiones, estado inicial y los n-cubos del sistema.
+        """
         sub_dims = self.dims_ncubos
         cubes_info = [f"{c}" for c in self.ncubos]
         return (

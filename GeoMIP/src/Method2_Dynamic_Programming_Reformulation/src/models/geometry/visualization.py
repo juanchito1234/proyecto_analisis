@@ -14,6 +14,14 @@ except ImportError:
 def obtener_particion_mecanismos(partition, dims_ncubos):
     """
     Agrupa las dimensiones del mecanismo (ACTUAL) según los bloques de la partición.
+
+    Args:
+        partition (list[set]): Partición de variables del sistema.
+        dims_ncubos (np.ndarray): Dimensiones activas del mecanismo.
+
+    Returns:
+        tuple[dict, dict]: (bloques_mecanismo, node_to_block) que mapea bloques a variables
+                           y variables físicas a su correspondiente índice de bloque.
     """
     # Mapear cada variable del mecanismo a su índice de bloque en la partición
     node_to_block = {}
@@ -36,6 +44,13 @@ def obtener_particion_mecanismos(partition, dims_ncubos):
 def proyectar_vertice(coords, n_dims):
     """
     Proyecta un vértice n-dimensional a coordenadas 3D para visualización.
+
+    Args:
+        coords (iterable): Coordenadas binarias del vértice.
+        n_dims (int): Dimensionalidad original.
+
+    Returns:
+        np.ndarray: Coordenadas 3D proyectadas del vértice.
     """
     if n_dims == 0:
         return np.array([0.0, 0.0, 0.0])
@@ -56,8 +71,13 @@ def proyectar_vertice(coords, n_dims):
 
 def construir_centroides_voronoi(k):
     """
-    Genera centroides distribuidos uniformemente
-    sobre un círculo para representar los bloques.
+    Genera centroides distribuidos uniformemente sobre un círculo para representar los bloques.
+
+    Args:
+        k (int): Número de bloques.
+
+    Returns:
+        list[np.ndarray]: Lista de centroides en 3D.
     """
     centroides = []
 
@@ -77,7 +97,14 @@ def construir_centroides_voronoi(k):
 
 def asignar_region_voronoi(punto, centroides):
     """
-    Retorna el índice del centroide más cercano.
+    Retorna el índice del centroide más cercano al punto dado.
+
+    Args:
+        punto (np.ndarray): Coordenadas del punto.
+        centroides (list[np.ndarray]): Lista de centroides de referencia.
+
+    Returns:
+        int: Índice del centroide más cercano.
     """
 
     distancias = [
@@ -92,6 +119,14 @@ def generar_visualizacion_hipercubo(partition, dims_ncubos, ruta_salida="results
     Genera y guarda una visualización en 3D/2D del hipercubo de estados usando
     la Proyección de Subespacio Representativo, coloreando las aristas por bloque
     y dibujando los hiperplanos divisores correspondientes de manera limpia y premium.
+
+    Args:
+        partition (list[set]): Partición de variables del sistema.
+        dims_ncubos (np.ndarray): Dimensiones de las variables.
+        ruta_salida (str): Ruta del archivo de imagen de salida.
+
+    Returns:
+        str: Mensaje indicando éxito o error.
     """
     if not MATPLOTLIB_AVAILABLE:
         return "[Aviso] Matplotlib no está instalado. No se pudo generar la imagen 3D."
@@ -354,6 +389,13 @@ def generar_ascii_hipercubo(partition, dims_ncubos):
     """
     Genera una interpretación de texto sobre los cortes en el hipercubo y la
     distribución de variables, omitiendo la representación visual del cubo en sí.
+
+    Args:
+        partition (list[set]): Partición de variables del sistema.
+        dims_ncubos (np.ndarray): Dimensiones de las variables.
+
+    Returns:
+        str: Cadena de texto con la interpretación geométrica en ASCII.
     """
     n_dims = len(dims_ncubos)
     bloques_mec, node_to_block = obtener_particion_mecanismos(partition, dims_ncubos)

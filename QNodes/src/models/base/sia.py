@@ -32,6 +32,12 @@ class SIA(ABC):
     """
 
     def __init__(self, tpm: np.ndarray) -> None:
+        """
+        Inicializa una nueva instancia de la clase SIA.
+
+        Args:
+            tpm (np.ndarray): Matriz de Probabilidad de Transición del sistema.
+        """
         self.tpm = tpm
         self.sia_logger = SafeLogger(SIA_PREPARATION_TAG)
 

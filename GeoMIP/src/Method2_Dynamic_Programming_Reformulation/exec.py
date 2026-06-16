@@ -11,7 +11,6 @@ def main():
     aplicacion.profiler_habilitado = True
     # aplicacion.pagina_sample_network = "B"
 
-    # pruebitas de las particiones k-geométricas jijijija
     # probar_geometric()
     probar_k_geometric()
 

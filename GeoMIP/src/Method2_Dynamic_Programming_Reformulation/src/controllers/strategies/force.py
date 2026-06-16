@@ -57,6 +57,12 @@ class BruteForce(SIA):
     """
 
     def __init__(self, gestor: Manager):
+        """
+        Inicializa la estrategia de fuerza bruta.
+
+        Args:
+            gestor (Manager): Gestor del sistema que contiene la configuración y estado inicial.
+        """
         super().__init__(gestor)
         profiler_manager.start_session(
             f"{NET_LABEL}{len(gestor.estado_inicial)}{gestor.pagina}"

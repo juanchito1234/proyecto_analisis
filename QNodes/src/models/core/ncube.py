@@ -156,6 +156,12 @@ class NCube:
         )
 
     def __str__(self) -> str:
+        """
+        Retorna la representación en cadena del n-cubo para fácil depuración.
+
+        Returns:
+            str: Representación formateada que detalla el índice, dimensiones, forma y datos del n-cubo.
+        """
         dims_str = f"dims={self.dims}"
         forma_str = f"shape={self.data.shape}"
         datos_str = str(self.data).replace("\n", "\n" + " " * 8)

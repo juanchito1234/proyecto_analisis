@@ -29,6 +29,12 @@ import itertools
 
 class GeometricSIA(SIA):
     def __init__(self, gestor: Manager):
+        """
+        Inicializa la estrategia geométrica.
+
+        Args:
+            gestor (Manager): Gestor del sistema.
+        """
         super().__init__(gestor)
         profiler_manager.start_session(
             f"{NET_LABEL}{len(gestor.estado_inicial)}{gestor.pagina}"
@@ -96,6 +102,15 @@ class GeometricSIA(SIA):
         )
     
     def nodes_complement(self, nodes: list[tuple[int, int]]):
+        """
+        Calcula el complemento del conjunto de nodos dado con respecto a todos los vértices del sistema.
+
+        Args:
+            nodes (list[tuple[int, int]]): Lista de nodos representados como tuplas (tipo, indice).
+
+        Returns:
+            list[tuple[int, int]]: Lista de nodos complementarios.
+        """
         return list(set(self.vertices) - set(nodes))
     
     def find_mip(self):
@@ -126,6 +141,13 @@ class GeometricSIA(SIA):
         )
     
     def calcular_costos_nivel(self,estado_final: np.ndarray, nivel):
+        """
+        Calcula los costos de transición para todos los estados válidos en un nivel de distancia Hamming específico.
+
+        Args:
+            estado_final (np.ndarray): Estado final objetivo del sistema.
+            nivel (int): Nivel actual en la búsqueda (distancia Hamming desde el estado inicial).
+        """
         n = len(estado_final)      
         visitados:set[tuple] = set()
         self.caminos[nivel] = []
@@ -265,4 +287,14 @@ class GeometricSIA(SIA):
         return candidatos
 
     def hamming(self,a: List[int], b: List[int]) -> int:
+        """
+        Calcula la distancia de Hamming entre dos listas/vectores binarios.
+
+        Args:
+            a (List[int]): Primera secuencia binaria.
+            b (List[int]): Segunda secuencia binaria.
+
+        Returns:
+            int: Cantidad de bits diferentes entre ambas secuencias.
+        """
         return sum(x != y for x, y in zip(a, b))

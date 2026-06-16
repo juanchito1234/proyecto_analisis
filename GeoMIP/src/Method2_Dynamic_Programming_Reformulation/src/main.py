@@ -97,6 +97,15 @@ ALCANCE = "1" * N
 MECANISMO = "1" * N
 
 def limpiar_particion(obj):
+    """
+    Normaliza los tipos de datos en la partición (ej. convierte tipos NumPy a Python estándar).
+
+    Args:
+        obj: Estructura de partición conteniendo tuplas, listas, conjuntos o enteros.
+
+    Returns:
+        Estructura limpia con tipos de datos estándar de Python.
+    """
     # NumPy integer -> int normal
     if isinstance(obj, np.integer):
         return int(obj)
@@ -122,6 +131,16 @@ def limpiar_particion(obj):
     return obj
 
 def convertir_a_binario(texto, n_bits=20):
+    """
+    Convierte una representación de texto con letras (ej. ABCD) en una cadena binaria posicional.
+
+    Args:
+        texto (str): Texto con letras a convertir.
+        n_bits (int): Número de bits del sistema.
+
+    Returns:
+        str: Cadena binaria de longitud n_bits.
+    """
     posiciones = "ABCDEFGHIJKLMNOPQRST"[:n_bits]
     binario = ["0"] * n_bits
     for letra in texto:
@@ -130,6 +149,17 @@ def convertir_a_binario(texto, n_bits=20):
     return "".join(binario)
 
 def ejecutar_con_tiempo(config_sistema, condiciones, alcance, mecanismo, resultado_queue, tpm):
+    """
+    Ejecuta el análisis de GeometricSIA midiendo los tiempos y guardando los resultados en la cola.
+
+    Args:
+        config_sistema (Manager): Gestor del sistema.
+        condiciones (str): Condiciones de fondo.
+        alcance (str): Variables futuras.
+        mecanismo (str): Variables presentes.
+        resultado_queue (multiprocessing.Queue): Cola para retornar resultados.
+        tpm (np.ndarray): Matriz de Probabilidad de Transición.
+    """
     try:
         analizador_fi = GeometricSIA(config_sistema)
         sia_dos = analizador_fi.aplicar_estrategia(condiciones, alcance, mecanismo, tpm)
@@ -236,6 +266,17 @@ def resolver_tpm_path(
     archivo_tpm: str | None = None,
     version="A"
 ) -> Path:
+    """
+    Resuelve y retorna la ruta del archivo TPM (.csv) correspondiente.
+
+    Args:
+        estado_inicio (str): Estado inicial o de inicio.
+        archivo_tpm (str | None): Archivo TPM específico solicitado.
+        version (str): Versión de la TPM a buscar (por defecto "A").
+
+    Returns:
+        Path: Ruta resuelta al archivo CSV.
+    """
 
     # Si el usuario pasa un archivo exacto
     if archivo_tpm is not None:
@@ -313,6 +354,18 @@ def ejecutar_desde_excel(
     condiciones: str | None = None,
     k: int | None = None,
 ):
+    """
+    Lee configuraciones de subsistemas desde un archivo de Excel, ejecuta la estrategia y guarda los resultados.
+
+    Args:
+        ruta_excel (Path): Ruta del archivo Excel de entrada.
+        ruta_salida (Path): Ruta de salida para guardar los resultados procesados.
+        inicio (int): Índice inicial de filas a procesar.
+        cantidad (int): Cantidad máxima de filas a procesar.
+        estado_inicio (str | None): Estado de inicio personalizado.
+        condiciones (str | None): Condiciones personalizadas.
+        k (int | None): Número de bloques para K-Geometric (si aplica).
+    """
     df = pd.read_excel(ruta_excel, sheet_name=8, usecols="B", skiprows=3, names=["Subsistema"]) #! here
     filas = df["Subsistema"].dropna().tolist()
     filas = filas[inicio:inicio + cantidad]
@@ -392,6 +445,9 @@ def ejecutar_desde_excel(
     print(f"Resultados guardados en {ruta_salida}")
 
 def iniciar():
+    """
+    Punto de entrada para la ejecución por defecto (GeometricSIA) leyendo de Excel.
+    """
     ruta_entrada = Path(
         os.getenv(
             "GEOMIP_INPUT_XLSX",
@@ -407,6 +463,9 @@ def iniciar():
     ejecutar_desde_excel(ruta_entrada, ruta_salida)
 
 def iniciar_k_geometric():
+    """
+    Punto de entrada para la ejecución de K-Geometric leyendo de Excel.
+    """
     ruta_entrada = Path(
         os.getenv(
             "GEOMIP_INPUT_XLSX",
@@ -422,6 +481,9 @@ def iniciar_k_geometric():
     ejecutar_desde_excel(ruta_entrada, ruta_salida, k=K)
 
 def probar_geometric():
+    """
+    Función de prueba para ejecutar e imprimir directamente el resultado de la estrategia geométrica simple.
+    """
     print("\n===== GEOMETRIC =====\n")
 
     estado_inicial = ESTADO_INICIAL
@@ -485,6 +547,9 @@ def probar_geometric():
     print(solucion)
 
 def probar_k_geometric():
+    """
+    Función de prueba para ejecutar, graficar y reportar el desempeño de la estrategia K-Geometric.
+    """
     reset_times()
     tracemalloc.start()
 

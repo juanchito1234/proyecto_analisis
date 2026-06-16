@@ -47,6 +47,16 @@ class System:
         self.memo = {}
 
     def validacion_inicial(self, tpm: np.ndarray, estado_inicio: np.ndarray):
+        """
+        Valida que el tamaño del estado inicial coincida con las dimensiones de la TPM.
+
+        Args:
+            tpm (np.ndarray): Matriz de Probabilidad de Transición.
+            estado_inicio (np.ndarray): Estado inicial.
+
+        Returns:
+            int: Número de nodos en el sistema.
+        """
         if estado_inicio.size != (num_nodos := tpm.shape[COLS_IDX]):
             raise ValueError(ERROR_ESPACIOS_INCOMPATIBLES(num_nodos))
         return num_nodos
@@ -281,8 +291,11 @@ class System:
         Es en este método donde generamos a partir de un subsistema, una partición de tamaño k.
         
         Args:
-            particiones: Lista de tuplas, donde cada tupla contiene (alcance, mecanismo) 
+            particiones (list[tuple[NDArray[np.int8], NDArray[np.int8]]]): Lista de tuplas, donde cada tupla contiene (alcance, mecanismo) 
                          para cada una de las k partes en las que se divide el sistema.
+
+        Returns:
+            System: El sistema particionado resultante.
         """
         nuevo_sistema = System.__new__(System)
         nuevo_sistema.estado_inicial = self.estado_inicial
@@ -339,6 +352,12 @@ class System:
         return distribucion
 
     def __str__(self) -> str:
+        """
+        Retorna la representación en cadena del sistema.
+
+        Returns:
+            str: Detalle de los índices, dimensiones, estado inicial y los n-cubos del sistema.
+        """
         sub_dims = self.dims_ncubos
         cubos_info = [f"{c}" for c in self.ncubos]
         return (

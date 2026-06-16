@@ -15,6 +15,10 @@ def fmt_biparticion_fuerza_bruta(
 
     Args:
         parte_uno: Mecanismo y purview de la primera parte.
+        parte_dos: Mecanismo y purview de la segunda parte (dual).
+
+    Returns:
+        str: Representación visual formateada de la bipartición.
     '''
     mech_p, pur_p = parte_uno
     mech_d, purv_d = parte_dos
@@ -44,6 +48,17 @@ def fmt_biparticion_q(
     dual: list[tuple[int, int]],
     to_sort: bool = True,
 ) -> str:
+    """
+    Formatea una bipartición obtenida mediante el algoritmo Q en una representación en cadena.
+
+    Args:
+        prim (list[tuple[int, int]]): Primera parte.
+        dual (list[tuple[int, int]]): Segunda parte.
+        to_sort (bool): Si es True, ordena los elementos por índice.
+
+    Returns:
+        str: Representación en cadena de la bipartición.
+    """
     top_prim, bottom_prim = fmt_parte_q(prim, to_sort)
     top_dual, bottom_dual = fmt_parte_q(dual, to_sort)
 
@@ -53,6 +68,16 @@ def fmt_biparticion_q(
 def fmt_parte_q(
     parte: list[tuple[int, int]], a_ordenar: bool = True
 ) -> tuple[str, str]:
+    """
+    Formatea una parte individual de la bipartición.
+
+    Args:
+        parte (list[tuple[int, int]]): Parte a formatear.
+        a_ordenar (bool): Si es True, ordena los elementos.
+
+    Returns:
+        tuple[str, str]: Tupla con la cadena superior (purview) e inferior (mecanismo).
+    """
     if a_ordenar:
         # Ordenar por índice #
         parte.sort(key=lambda x: x[1])
@@ -71,6 +96,16 @@ def fmt_k_particion_q(
     partes: list[list[tuple[int, int]]],
     to_sort: bool = True,
 ) -> str:
+    """
+    Formatea una k-partición general en una representación legible de texto.
+
+    Args:
+        partes (list[list[tuple[int, int]]]): Lista de bloques de la partición.
+        to_sort (bool): Si es True, ordena los elementos.
+
+    Returns:
+        str: Representación en cadena de la k-partición.
+    """
     top = ""
     bottom = ""
     for parte in partes:

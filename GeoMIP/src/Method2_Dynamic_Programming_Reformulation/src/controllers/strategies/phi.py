@@ -49,6 +49,12 @@ class Phi(SIA):
     """Class Phi is used as base for other strategies, bruteforce with pyphi."""
 
     def __init__(self, config: Manager) -> None:
+        """
+        Inicializa la estrategia Phi basada en PyPhi.
+
+        Args:
+            config (Manager): Gestor del sistema con la configuración requerida.
+        """
         super().__init__(config)
         profiler_manager.start_session(
             f"{NET_LABEL}{len(config.estado_inicial)}{config.pagina}"
@@ -57,6 +63,17 @@ class Phi(SIA):
 
     @profile(context={TYPE_TAG: PYPHI_ANALYSIS_TAG})
     def aplicar_estrategia(self, condiciones: str, alcance: str, mecanismo: str):
+        """
+        Aplica la estrategia basada en PyPhi para encontrar la bipartición óptima (MIP).
+
+        Args:
+            condiciones (str): Condiciones aplicadas sobre el sistema.
+            alcance (str): Variables futuras (alcance) del subsistema.
+            mecanismo (str): Variables presentes (mecanismo) del subsistema.
+
+        Returns:
+            Solution: Objeto solución con el resultado del análisis EMD y la partición óptima.
+        """
         self.sia_tiempo_inicio = time.time()
         alcance_idx, mecanismo_idx, subsistema = self.preparar_subsistema(
             condiciones, alcance, mecanismo
@@ -103,6 +120,17 @@ class Phi(SIA):
         )
 
     def preparar_subsistema(self, condiciones: str, futuros: str, presentes: str):
+        """
+        Prepara el subsistema y determina los índices de alcance y mecanismo compatibles con PyPhi.
+
+        Args:
+            condiciones (str): Condiciones aplicadas.
+            futuros (str): Variables futuras.
+            presentes (str): Variables presentes.
+
+        Returns:
+            tuple: (alcance, mecanismo, subsistema) listos para el análisis de PyPhi.
+        """
         estado_inicial = tuple(int(s) for s in self.sia_gestor.estado_inicial)
         longitud = len(estado_inicial)
 

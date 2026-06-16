@@ -334,6 +334,9 @@ class PartitionEvaluator:
     def get_cache_performance(self):
         """
         Retorna las métricas de desempeño de la cache.
+
+        Returns:
+            dict: Diccionario conteniendo hits, misses y el porcentaje de aciertos.
         """
         total = self.cache_hits + self.cache_misses
         porcentaje = (self.cache_hits / total * 100) if total > 0 else 0.0

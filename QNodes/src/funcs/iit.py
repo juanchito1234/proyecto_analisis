@@ -152,7 +152,10 @@ def seleccionar_distancia() -> Callable[
     float,
 ]:
     """
-    Selecciona la métrica de distancia a utilizar.
+    Selecciona la métrica de distancia a utilizar según la configuración de la aplicación.
+
+    Returns:
+        Callable: Función de distancia seleccionada.
     """
     distancias_metricas: dict[
         str, Callable[[NDArray[np.float32], NDArray[np.float32]], float]
@@ -253,6 +256,12 @@ def seleccionar_estado(subestado: np.ndarray) -> np.ndarray:
 def big_endian(n: int) -> np.ndarray:
     """
     Implementación para generación de números en notación big endian.
+
+    Args:
+        n (int): Cantidad de elementos.
+
+    Returns:
+        np.ndarray: Array de índices ordenado según Big Endian.
     """
     return np.array(range(n), dtype=np.uint32)
 
@@ -260,6 +269,12 @@ def big_endian(n: int) -> np.ndarray:
 def lil_endian(n: int) -> np.ndarray:
     """
     Implementación final optimizada para generación de números en notación little endian.
+
+    Args:
+        n (int): Cantidad de elementos.
+
+    Returns:
+        np.ndarray: Array de índices ordenado según Little Endian.
     """
     if n <= 0:
         # Caso especial para n=0
@@ -313,6 +328,12 @@ def get_restricted_combinations(binary_str: str) -> tuple[list[str], list[str]]:
     """
     Genera las combinaciones para B y C basadas en la cadena binaria A.
     B solo puede tener 1s donde A tiene 1s.
+
+    Args:
+        binary_str (str): Cadena binaria de control (A).
+
+    Returns:
+        tuple[list[str], list[str]]: Listas de combinaciones válidas para B y C.
     """
     # Contar cuántos 1s hay en la cadena
     ones_count = binary_str.count("1")
@@ -349,6 +370,12 @@ def get_restricted_combinations(binary_str: str) -> tuple[list[str], list[str]]:
 def generate_combinations(A: str) -> list[tuple[str, str, str]]:
     """
     Genera el producto cartesiano final de A con las combinaciones válidas de B y C.
+
+    Args:
+        A (str): Cadena de control.
+
+    Returns:
+        list[tuple[str, str, str]]: Producto cartesiano de las combinaciones.
     """
     B, C = get_restricted_combinations(A)
     # Convertimos A, B y C en formato "XX XX XX"
@@ -377,5 +404,11 @@ def dec2bin(decimal: int, width: int) -> str:
 def estados_binarios(n: int) -> list[str]:
     """
     Genera los estados binarios para un sistema de n nodos.
+
+    Args:
+        n (int): Cantidad de nodos.
+
+    Returns:
+        list[str]: Lista de todos los estados binarios posibles.
     """
     return [dec2bin(i, n) for i in range(1 << n)][1:]
